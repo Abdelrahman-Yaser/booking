@@ -1,6 +1,7 @@
 import { Module } from '@nestjs/common';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { TypeOrmModule, TypeOrmModuleOptions } from '@nestjs/typeorm';
+import { AuthModule } from './auth/auth.module';
 
 @Module({
   imports: [
@@ -18,10 +19,11 @@ import { TypeOrmModule, TypeOrmModuleOptions } from '@nestjs/typeorm';
         username: config.get('POSTGRES_USER') as string,
         password: config.get('POSTGRES_PASSWORD') as string,
         database: config.get('POSTGRES_DB') as string,
-        entities: [], // هنا ممكن تضيف الـ entities الخاصة بك
+        entities: [__dirname + '/modules/**/entities/*.entity{.ts,.js}'], // هنا ممكن تضيف الـ entities الخاصة بك
         synchronize: true,
       }),
     }),
+    AuthModule,
   ],
   controllers: [],
   providers: [],

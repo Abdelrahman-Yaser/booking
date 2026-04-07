@@ -1,0 +1,89 @@
+// generator and datasource setup
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// 1. The Core of SaaS: The Tenant (e.g., a School or a Company)
+model Tenant {
+  id        String     @id @default(uuid())
+  name      String
+  slug      String     @unique // e.g., "cairo-office"
+  users     User[]
+  resources Resource[]
+  bookings  Booking[]
+  createdAt DateTime   @default(now())
+  updatedAt DateTime   @updatedAt
+}
+
+model User {
+  id        String    @id @default(uuid())
+  email     String    @unique
+  password  String
+  role      Role      @default(USER)
+  
+  // Relations
+  tenantId  String
+  tenant    Tenant    @relation(fields: [tenantId], references: [id])
+  bookings  Booking[]
+  
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+}
+
+model Resource {
+  id          String    @id @default(uuid())
+  name        String
+  type        String    // "room", "seat", "vehicle"
+  capacity    Int
+  
+  // Relations
+  tenantId    String
+  tenant      Tenant    @relation(fields: [tenantId], references: [id])
+  bookings    Booking[]
+
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  @@index([tenantId]) // Optimize lookups for a specific tenant
+}
+
+model Booking {
+  id         String        @id @default(uuid())
+  
+  // Relations
+  userId     String
+  user       User          @relation(fields: [userId], references: [id])
+  
+  resourceId String
+  resource   Resource      @relation(fields: [resourceId], references: [id])
+  
+  tenantId   String
+  tenant     Tenant        @relation(fields: [tenantId], references: [id])
+
+  startTime  DateTime
+  endTime    DateTime
+  status     BookingStatus @default(PENDING)
+  
+  createdAt  DateTime      @default(now())
+  updatedAt  DateTime      @updatedAt
+
+  // Crucial for performance and multi-tenant isolation
+  @@index([tenantId, resourceId, startTime, endTime]) 
+}
+
+enum BookingStatus { 
+  PENDING 
+  CONFIRMED 
+  CANCELLED 
+}
+
+enum Role { 
+  USER 
+  ADMIN 
+  OWNER 
+}
