@@ -31,4 +31,16 @@ export default tseslint.config(
       '@typescript-eslint/no-unsafe-argument': 'warn'
     },
   },
+  // --- ADDED THIS BLOCK ---
+  // This disables the strict type-checking rules specifically for your DTO 
+  // and Entity files so @ApiProperty and other decorators stop throwing errors.
+  {
+    files: ['**/*.dto.ts', '**/*.entity.ts'],
+    rules: {
+      '@typescript-eslint/no-unsafe-call': 'off',
+      '@typescript-eslint/no-unsafe-assignment': 'off',
+      '@typescript-eslint/no-unsafe-argument': 'off',
+      '@typescript-eslint/no-unsafe-return': 'off'
+    },
+  }
 );

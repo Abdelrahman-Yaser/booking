@@ -1,25 +1,38 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { Role } from '../../common/enums/role.enum';
+import { Role } from '../../../common/enums';
 import { Exclude } from 'class-transformer';
 
-export class UserEntity implements User {
-  @ApiProperty()
+export interface User {
   id: string;
-
-  @ApiProperty()
+  name?: string;
   email: string;
+  password: string;
+  role: Role;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+export class UserEntity implements User {
+  @ApiProperty({ description: 'User ID' })
+  id!: string;
+
+  @ApiProperty({ description: 'User name', required: false })
+  name?: string;
+
+  @ApiProperty({ description: 'User email' })
+  email!: string;
 
   @Exclude() // This hides the password from the API response
-  password: string;
+  password!: string;
 
-  @ApiProperty({ enum: Role })
-  role: Role;
+  @ApiProperty({ enum: Role, description: 'User role' })
+  role!: Role;
 
-  @ApiProperty()
-  createdAt: Date;
+  @ApiProperty({ description: 'User creation date' })
+  createdAt!: Date;
 
-  @ApiProperty()
-  updatedAt: Date;
+  @ApiProperty({ description: 'User update date' })
+  updatedAt!: Date;
 
   // You can also include relations here
   // @ApiProperty({ type: () => BookingEntity, isArray: true })

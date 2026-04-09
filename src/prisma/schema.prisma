@@ -5,7 +5,7 @@ generator client {
 
 datasource db {
   provider = "postgresql"
-  url      = env("DATABASE_URL")
+
 }
 
 // 1. The Core of SaaS: The Tenant (e.g., a School or a Company)
