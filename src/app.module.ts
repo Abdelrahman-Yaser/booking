@@ -1,7 +1,11 @@
 import { Module } from '@nestjs/common';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { TypeOrmModule, TypeOrmModuleOptions } from '@nestjs/typeorm';
+<<<<<<< Updated upstream
 import { AuthModule } from './auth/auth.module';
+=======
+import { PrismaService } from './prisma/prisma.service';
+>>>>>>> Stashed changes
 
 @Module({
   imports: [
@@ -26,6 +30,6 @@ import { AuthModule } from './auth/auth.module';
     AuthModule,
   ],
   controllers: [],
-  providers: [],
+  providers: [PrismaService],
 })
 export class AppModule {}
