@@ -1,11 +1,11 @@
 // generator and datasource setup
 generator client {
   provider = "prisma-client-js"
+previewFeatures = ["driverAdapters"]
 }
 
 datasource db {
   provider = "postgresql"
-
 }
 
 // 1. The Core of SaaS: The Tenant (e.g., a School or a Company)

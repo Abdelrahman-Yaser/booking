@@ -1,35 +1,21 @@
 import { Module } from '@nestjs/common';
-import { ConfigModule, ConfigService } from '@nestjs/config';
-import { TypeOrmModule, TypeOrmModuleOptions } from '@nestjs/typeorm';
-<<<<<<< Updated upstream
-import { AuthModule } from './auth/auth.module';
-=======
-import { PrismaService } from './prisma/prisma.service';
->>>>>>> Stashed changes
+import { ConfigModule } from '@nestjs/config';
+import { AuthModule } from './modules/auth/auth.module';
+import { PrismaModule } from './prisma/prisma.module'; // يفضل أن يكون Prisma في Module مستقل
 
 @Module({
   imports: [
+    // 1. إعداد الـ ConfigModule بشكل عالمي
     ConfigModule.forRoot({
       isGlobal: true,
       envFilePath: '.env',
     }),
-    TypeOrmModule.forRootAsync({
-      imports: [ConfigModule],
-      inject: [ConfigService],
-      useFactory: (config: ConfigService): TypeOrmModuleOptions => ({
-        type: 'postgres',
-        host: config.get('POSTGRES_HOST') as string,
-        port: Number(config.get('POSTGRES_PORT')) || 5432,
-        username: config.get('POSTGRES_USER') as string,
-        password: config.get('POSTGRES_PASSWORD') as string,
-        database: config.get('POSTGRES_DB') as string,
-        entities: [__dirname + '/modules/**/entities/*.entity{.ts,.js}'], // هنا ممكن تضيف الـ entities الخاصة بك
-        synchronize: true,
-      }),
-    }),
+    PrismaModule,
+
+    // 3. استيراد الموديولات الأخرى
     AuthModule,
   ],
   controllers: [],
-  providers: [PrismaService],
+  providers: [], // الـ PrismaService سيكون داخل الـ PrismaModule
 })
 export class AppModule {}
