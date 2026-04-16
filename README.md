@@ -76,3 +76,4 @@ All main tables support soft delete using:
 
 
 ![ERD Diagram](./dose/erd.jpg)
+![ERD Diagram](./dose/hotel_room_car_erd.html)

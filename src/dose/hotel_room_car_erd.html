@@ -1,0 +1,111 @@
+
+<style>
+#erd svg { width: 100%; height: auto; }
+#erd svg.erDiagram .row-rect-odd path,
+#erd svg.erDiagram .row-rect-odd rect,
+#erd svg.erDiagram .row-rect-even path,
+#erd svg.erDiagram .row-rect-even rect { stroke: none !important; }
+</style>
+<div id="erd" style="padding: 1rem 0;"></div>
+<script type="module">
+import mermaid from 'https://esm.sh/mermaid@11/dist/mermaid.esm.min.mjs';
+const dark = matchMedia('(prefers-color-scheme: dark)').matches;
+await document.fonts.ready;
+mermaid.initialize({
+  startOnLoad: false,
+  theme: 'base',
+  fontFamily: '"Anthropic Sans", sans-serif',
+  themeVariables: {
+    darkMode: dark,
+    fontSize: '13px',
+    fontFamily: '"Anthropic Sans", sans-serif',
+    lineColor: dark ? '#9c9a92' : '#73726c',
+    textColor: dark ? '#c2c0b6' : '#3d3d3a',
+  },
+});
+const diagram = `erDiagram
+  USER {
+    uuid id PK
+    string email
+    string passwordHash
+    string role
+    timestamp createdAt
+  }
+  HOTEL {
+    uuid id PK
+    string name
+    string address
+    string city
+    string ownerId FK
+    float starRating
+  }
+  ROOM {
+    uuid id PK
+    uuid hotelId FK
+    string number
+    string type
+    float pricePerNight
+    int capacity
+    string status
+  }
+  CAR {
+    uuid id PK
+    string brand
+    string model
+    string plateNumber
+    float pricePerDay
+    string status
+    string ownerId FK
+  }
+  RENTAL {
+    uuid id PK
+    uuid userId FK
+    uuid roomId FK
+    uuid carId FK
+    string type
+    datetime startDate
+    datetime endDate
+    float totalPrice
+    string status
+  }
+  PAYMENT {
+    uuid id PK
+    uuid rentalId FK
+    float amount
+    string method
+    string status
+    string gatewayRef
+    timestamp paidAt
+  }
+  USER ||--o{ HOTEL : owns
+  USER ||--o{ RENTAL : makes
+  HOTEL ||--o{ ROOM : has
+  ROOM ||--o{ RENTAL : booked_via
+  CAR ||--o{ RENTAL : booked_via
+  RENTAL ||--|| PAYMENT : paid_by
+`;
+const { svg } = await mermaid.render('erd-svg', diagram);
+document.getElementById('erd').innerHTML = svg;
+document.querySelectorAll('#erd svg.erDiagram .node').forEach(node => {
+  const firstPath = node.querySelector('path[d]');
+  if (!firstPath) return;
+  const d = firstPath.getAttribute('d');
+  const nums = d.match(/-?[\d.]+/g)?.map(Number);
+  if (!nums || nums.length < 8) return;
+  const xs = [nums[0], nums[2], nums[4], nums[6]];
+  const ys = [nums[1], nums[3], nums[5], nums[7]];
+  const x = Math.min(...xs), y = Math.min(...ys);
+  const w = Math.max(...xs) - x, h = Math.max(...ys) - y;
+  const rect = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
+  rect.setAttribute('x', x); rect.setAttribute('y', y);
+  rect.setAttribute('width', w); rect.setAttribute('height', h);
+  rect.setAttribute('rx', '8');
+  for (const a of ['fill', 'stroke', 'stroke-width', 'class', 'style']) {
+    if (firstPath.hasAttribute(a)) rect.setAttribute(a, firstPath.getAttribute(a));
+  }
+  firstPath.replaceWith(rect);
+});
+document.querySelectorAll('#erd svg.erDiagram .row-rect-odd path, #erd svg.erDiagram .row-rect-even path').forEach(p => {
+  p.setAttribute('stroke', 'none');
+});
+</script>
