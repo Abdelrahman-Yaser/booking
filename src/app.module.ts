@@ -2,6 +2,7 @@ import { Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
 import { AuthModule } from './modules/auth/auth.module';
 import { PrismaModule } from './prisma/prisma.module'; // يفضل أن يكون Prisma في Module مستقل
+import { TenantsModule } from './modules/tenants/tenants.module';
 
 @Module({
   imports: [
@@ -11,8 +12,7 @@ import { PrismaModule } from './prisma/prisma.module'; // يفضل أن يكون
       envFilePath: '.env',
     }),
     PrismaModule,
-
-    // 3. استيراد الموديولات الأخرى
+    TenantsModule,
     AuthModule,
   ],
   controllers: [],
