@@ -17,8 +17,7 @@ This Booking System is built for **scalability, performance, and maintainability
 
 ### Denormalization
 - Certain read models are **denormalized** for faster queries and reduced joins.  
-- Improves performance while keeping data consistent under high load.
-
+- Improves performance while keeping data consistent under high load
 
 - Rooms  
 - Customers  
@@ -60,7 +59,7 @@ The system supports **schema-based multi-tenancy (Schema-per-Tenant)** for stron
 
 ### 🛡 Soft Delete  
 All main tables support soft delete using:  
-
+![Rental Payment Flow](src/dose/rental_payment_flow.svg)
 ### ERD Diagram customer
 
 
@@ -83,6 +82,7 @@ All main tables support soft delete using:
 erDiagram
     USER {
         uuid id PK
+        string name
         string email
         string passwordHash
         string role
