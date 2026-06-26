@@ -1,44 +1,20 @@
-import { ApiProperty } from '@nestjs/swagger';
-import { Role } from '../../../common/enums';
-import { Exclude } from 'class-transformer';
+import { Entity, PrimaryGeneratedColumn, Column, ManyToOne } from 'typeorm';
+import { Tenant } from '../../tenants/entities/tenant.entity';
 
-export interface User {
-  id: string;
-  name?: string;
-  email: string;
-  password: string;
-  role: Role;
-  createdAt: Date;
-  updatedAt: Date;
-}
+@Entity('users')
+export class User {
+  @PrimaryGeneratedColumn()
+  id!: number;
 
-export class UserEntity implements User {
-  @ApiProperty({ description: 'User ID' })
-  id!: string;
+  @Column()
+  username!: string;
 
-  @ApiProperty({ description: 'User name', required: false })
-  name?: string;
-
-  @ApiProperty({ description: 'User email' })
+  @Column()
   email!: string;
 
-  @Exclude() // This hides the password from the API response
-  password!: string;
+  @ManyToOne(() => Tenant, (tenant) => tenant.users, { onDelete: 'CASCADE' })
+  tenant!: Tenant;
 
-  @ApiProperty({ enum: Role, description: 'User role' })
-  role!: Role;
-
-  @ApiProperty({ description: 'User creation date' })
-  createdAt!: Date;
-
-  @ApiProperty({ description: 'User update date' })
-  updatedAt!: Date;
-
-  // You can also include relations here
-  // @ApiProperty({ type: () => BookingEntity, isArray: true })
-  // bookings?: BookingEntity[];
-
-  constructor(partial: Partial<UserEntity>) {
-    Object.assign(this, partial);
-  }
+  @Column()
+  tenantId!: number;
 }

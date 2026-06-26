@@ -1,1 +1,3 @@
-export class Customer {}
+export class Customer {
+    
+}

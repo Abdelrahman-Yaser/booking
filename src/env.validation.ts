@@ -28,5 +28,13 @@ export const envValidationSchema = Joi.object({
   MAIL_PASS: Joi.string().optional(),
   MAIL_FROM: Joi.string().email().default('noreply@booking.com'),
   MAIL_FROM_NAME: Joi.string().default('Booking Platform'),
-  SENDGRID_API_KEY: Joi.string().optional(),
+
+  // 👇 تعديل سحري: هيكون إجباري فقط في حالة اختيار sendgrid كـ Provider 👇
+  SENDGRID_API_KEY: Joi.string().when('MAIL_PROVIDER', {
+    is: 'sendgrid',
+    then: Joi.required().messages({
+      'any.required': 'SENDGRID_API_KEY is required when MAIL_PROVIDER is set to sendgrid',
+    }),
+    otherwise: Joi.optional(),
+  }),
 });

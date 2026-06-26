@@ -1,6 +1,3 @@
-/* eslint-disable @typescript-eslint/no-unsafe-member-access */
-/* eslint-disable @typescript-eslint/no-unsafe-return */
-/* eslint-disable @typescript-eslint/no-unsafe-assignment */
 import {
   Injectable,
   NotFoundException,
@@ -8,32 +5,31 @@ import {
   InternalServerErrorException,
   UnauthorizedException,
 } from '@nestjs/common';
+import { InjectRepository } from '@nestjs/typeorm';
+import { Repository } from 'typeorm';
+import { User } from './entities/auth.entity'; // تأكد من مسار الـ User Entity الخاص بك
 import { CreateAuthDto } from './dto/create-auth.dto';
 import { UpdateAuthDto } from './dto/update-auth.dto';
 import { LoginDto } from './dto/login.dto';
-import { PrismaService } from 'src/prisma/prisma.service';
 import { JwtService } from '@nestjs/jwt';
 import { ConfigService } from '@nestjs/config';
 import * as bcrypt from 'bcrypt';
-import { Prisma } from '@prisma/client';
 
-// ─── type: user row without password ─────────────────────────────────────────
-type SafeUser = Omit<
-  Awaited<ReturnType<PrismaService['user']['findUniqueOrThrow']>>,
-  'password'
->;
+// ─── تحديد نوع الـ SafeUser المرجوع بدون باسوورد ─────────────────────────────
+type SafeUser = Omit<User, 'password'>;
 
 @Injectable()
 export class AuthService {
   constructor(
-    private readonly prisma: PrismaService,
+    @InjectRepository(User)
+    private readonly userRepository: Repository<User>, // حقن الـ Repository بدلاً من Prisma
     private readonly jwtService: JwtService,
     private readonly config: ConfigService,
   ) {}
 
   // ─── PRIVATE HELPERS ─────────────────────────────────────────────────────────
 
-  /** Strip password — returns a new object, never mutates the original */
+  /** تفكيك الباسوورد وإرجاع الكائن آمن */
   private omitPassword<T extends { password?: unknown }>(
     user: T,
   ): Omit<T, 'password'> {
@@ -41,18 +37,18 @@ export class AuthService {
     return safe;
   }
 
-  /** Sign both access + refresh tokens in one place */
+  /** توقيع الـ Access والـ Refresh Tokens */
   private async signTokens(userId: string, email: string, role: string) {
     const payload = { sub: userId, email, role };
 
     const [accessToken, refreshToken] = await Promise.all([
       this.jwtService.signAsync(payload, {
         secret: this.config.get<string>('JWT_SECRET'),
-        expiresIn: '15m', // short-lived
+        expiresIn: '15m',
       }),
       this.jwtService.signAsync(payload, {
         secret: this.config.get<string>('JWT_REFRESH_SECRET'),
-        expiresIn: '7d', // long-lived
+        expiresIn: '7d',
       }),
     ]);
 
@@ -60,12 +56,11 @@ export class AuthService {
   }
 
   // ─── REGISTER ────────────────────────────────────────────────────────────────
-  // auth.service.ts
   async create(
     createAuthDto: CreateAuthDto,
     tenantId: string,
   ): Promise<SafeUser> {
-    const existing = await this.prisma.user.findUnique({
+    const existing = await this.userRepository.findOne({
       where: { email: createAuthDto.email },
     });
     if (existing) {
@@ -75,22 +70,18 @@ export class AuthService {
     const hashedPassword = await bcrypt.hash(createAuthDto.password, 10);
 
     try {
-      const user = await this.prisma.user.create({
-        data: {
-          ...createAuthDto,
-          password: hashedPassword,
-          tenant: {
-            connect: { id: tenantId },
-          },
-        },
+      // إنشاء كائن المستخدم الجديد وربطه بالـ tenantId
+      const newUser = this.userRepository.create({
+        ...createAuthDto,
+        password: hashedPassword,
+        tenantId: tenantId, // ربط مباشر عبر الـ ID
       });
 
+      const user = await this.userRepository.save(newUser);
       return this.omitPassword(user);
     } catch (err) {
-      if (
-        err instanceof Prisma.PrismaClientKnownRequestError &&
-        (err as Prisma.PrismaClientKnownRequestError).code === 'P2002'
-      ) {
+      // كود خطأ التكرار (Unique Constraint) في PostgreSQL مع TypeORM هو '23505'
+      if ((err as { code?: string }).code === '23505') {
         throw new ConflictException('Email already in use');
       }
       throw new InternalServerErrorException('Could not create user');
@@ -99,22 +90,17 @@ export class AuthService {
 
   // ─── LOGIN ───────────────────────────────────────────────────────────────────
   async login(loginDto: LoginDto) {
-    // 1. load user WITH password
     const user = await this.findByEmail(loginDto.email);
 
-    // use same generic message for both cases — don't leak which field is wrong
     if (!user) {
       throw new UnauthorizedException('Invalid credentials');
     }
 
-    // 2. compare passwords
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
     const valid = await bcrypt.compare(loginDto.password, user.password);
     if (!valid) {
       throw new UnauthorizedException('Invalid credentials');
     }
 
-    // 3. sign tokens
     const tokens = await this.signTokens(user.id, user.email, user.role);
 
     return {
@@ -134,38 +120,29 @@ export class AuthService {
         secret: this.config.get<string>('JWT_REFRESH_SECRET'),
       });
 
-      // confirm user still exists
       const user = await this.findOne(payload.sub);
-
-      // Use fresh user data for token generation
       const tokens = await this.signTokens(user.id, user.email, user.role);
 
       return tokens;
     } catch (error) {
-      if (
-        error instanceof UnauthorizedException ||
-        error instanceof NotFoundException
-      ) {
-        throw new UnauthorizedException('Invalid or expired refresh token');
-      }
       throw new UnauthorizedException('Invalid or expired refresh token');
     }
   }
+
   // ─── FIND ALL ────────────────────────────────────────────────────────────────
   async findAll(): Promise<SafeUser[]> {
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
-    const users = await this.prisma.user.findMany({
-      omit: { password: true }, // Prisma 5.13+ built-in omit
+    // جلب جميع الحقول ما عدا الباسوورد للـ Security باستخدام الـ Query Builder أو الـ select
+    const users = await this.userRepository.find({
+      select: ['id', 'username', 'email', 'tenantId', 'createdAt', 'updatedAt'], // حدد الحقول الآمنة فقط
     });
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-return
     return users;
   }
 
   // ─── FIND ONE ────────────────────────────────────────────────────────────────
   async findOne(id: string): Promise<SafeUser> {
-    const user = await this.prisma.user.findUnique({
+    const user = await this.userRepository.findOne({
       where: { id },
-      omit: { password: true },
+      select: ['id', 'username', 'email', 'tenantId', 'createdAt', 'updatedAt'],
     });
 
     if (!user) {
@@ -175,51 +152,52 @@ export class AuthService {
     return user;
   }
 
-  // ─── FIND BY EMAIL  (internal — includes password for bcrypt.compare) ────────
-  async findByEmail(email: string) {
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-return
-    return this.prisma.user.findUnique({ where: { email } });
+  // ─── FIND BY EMAIL (داخلي - يجلب الباسوورد للمقارنة) ──────────────────────────
+  async findByEmail(email: string): Promise<User | null> {
+    return this.userRepository.findOne({ where: { email } });
   }
 
   // ─── UPDATE ──────────────────────────────────────────────────────────────────
   async update(id: string, updateAuthDto: UpdateAuthDto): Promise<SafeUser> {
-    await this.findOne(id); // 404 if missing
+    const user = await this.userRepository.findOne({ where: { id } });
+    if (!user) {
+      throw new NotFoundException(`User #${id} not found`);
+    }
 
-    // build a clean update payload — do NOT mutate the incoming DTO
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
-    const data: any = { ...updateAuthDto };
+    const updateData: any = { ...updateAuthDto };
+
+    if (updateData.password) {
+      updateData.password = await bcrypt.hash(updateData.password, 10);
+    }
+
+    // التعامل مع تغيير الـ Tenant إن وُجد كـ string ID مباشر
+    if (updateData.tenant && typeof updateData.tenant === 'string') {
+      updateData.tenantId = updateData.tenant;
+      delete updateData.tenant;
+    }
+
     try {
-      if (data.password) {
-        data.password = await bcrypt.hash(data.password, 10);
-      }
-      // Transform tenant string to Prisma nested input format
-      if (data.tenant && typeof data.tenant === 'string') {
-        data.tenant = { connect: { id: data.tenant } };
-      }
+      // تحديث البيانات في الـ Repository وحفظها
+      this.userRepository.merge(user, updateData);
+      const updatedUser = await this.userRepository.save(user);
+      
+      return this.omitPassword(updatedUser);
     } catch (err) {
-      if ((err as { code?: string }).code === 'P2002') {
+      if ((err as { code?: string }).code === '23505') {
         throw new ConflictException('Email already in use');
       }
       throw new InternalServerErrorException('Could not update user');
     }
-
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
-    const updated = await this.prisma.user.update({
-      where: { id },
-      data,
-    });
-    if (!updated) {
-      throw new NotFoundException(`User #${id} not found`);
-    }
-    return this.omitPassword(updated);
   }
 
   // ─── REMOVE ──────────────────────────────────────────────────────────────────
   async remove(id: string): Promise<{ message: string }> {
-    await this.findOne(id); // 404 if missing
+    const user = await this.userRepository.findOne({ where: { id } });
+    if (!user) {
+      throw new NotFoundException(`User #${id} not found`);
+    }
 
-    await this.prisma.user.delete({ where: { id } });
-
+    await this.userRepository.remove(user);
     return { message: `User #${id} deleted successfully` };
   }
 }
