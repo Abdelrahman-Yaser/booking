@@ -40,4 +40,4 @@ console.log(user);    // { role: "User" }
 
 // --- 5. المقارنة الذكية ---
 console.log(Object.is(NaN, NaN)); // true  | أدق من ===
-console.log(Object.is(10, 10));   // true
+console.log(Object.is(10, 10));   // true/Users/sc/Downloads/README.md
