@@ -1,5 +1,5 @@
 import { Injectable, Logger } from '@nestjs/common';
-import { MailerService } from './mailer.service';
+import { MailerService } from '../MailerService/mailer.service';
 import {
   bookingConfirmationTemplate,
   checkInTemplate,

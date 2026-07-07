@@ -29,6 +29,9 @@ export class Booking {
   @Column({ type: 'timestamp' })
   endTime!: Date;
 
+  @Column({ type: 'boolean', default: false })
+  isDeleted!: boolean;
+
   @Column({ type: 'varchar', length: 50, default: 'pending' }) // تعديل النوع إلى varchar
   status!: string;
 

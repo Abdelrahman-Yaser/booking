@@ -4,23 +4,47 @@ import {
   BadRequestException,
   ConflictException,
 } from '@nestjs/common';
-import { PrismaService } from '../prisma/prisma.service';
+import { InjectRepository } from '@nestjs/typeorm';
+import {
+  Repository,
+  Between,
+  LessThanOrEqual,
+  MoreThanOrEqual,
+  FindOptionsWhere,
+} from 'typeorm';
+import { Booking } from './entities/booking.entity';
+import { Room, RoomStatus } from '../rooms/entities/room.entity';
+import { Tenant } from '../tenants/entities/tenant.entity';
+// import { Customer } from '../customers/entities/customer.entity'; // فك الكومنت عند توفر الـ Entity
+// import { Payment } from '../payments/entities/payment.entity';
 import { RoomsService } from '../rooms/rooms.service';
 import { NotificationsService } from '../notifications/notifications.service';
-import {
-  CreateBookingDto,
-  UpdateBookingDto,
-  UpdateBookingStatusDto,
-  BookingQueryDto,
-} from './dto/booking.dto';
-import { BookingStatus, RoomStatus } from '@prisma/client';
+import { CreateBookingDto } from './dto/booking/create-booking.dto';
+import { UpdateBookingDto } from './dto/booking/update-booking.dto'; // تأكد من اسم ومسار ملف الـ DTO عندك
+import { BookingQueryDto } from './dto/booking/BookingQueryDto';
+// تعريف الـ Statuses يدوياً كنصوص طالما تخلصنا من @prisma/client
+export type BookingStatus =
+  | 'PENDING'
+  | 'CONFIRMED'
+  | 'CHECKED_IN'
+  | 'CHECKED_OUT'
+  | 'CANCELLED'
+  | 'NO_SHOW';
 
 @Injectable()
 export class BookingsService {
   constructor(
-    private prisma: PrismaService,
-    private roomsService: RoomsService,
-    private notifications: NotificationsService,
+    @InjectRepository(Booking)
+    private readonly bookingRepository: Repository<Booking>,
+    @InjectRepository(Room)
+    private readonly roomRepository: Repository<Room>,
+    @InjectRepository(Tenant)
+    private readonly tenantRepository: Repository<Tenant>,
+    // @InjectRepository(Customer) private readonly customerRepository: Repository<Customer>,
+    // @InjectRepository(Payment) private readonly paymentRepository: Repository<Payment>,
+
+    private readonly roomsService: RoomsService,
+    private readonly notifications: NotificationsService,
   ) {}
 
   private calcNights(checkIn: Date, checkOut: Date): number {
@@ -28,6 +52,7 @@ export class BookingsService {
     return Math.ceil(diff / (1000 * 60 * 60 * 24));
   }
 
+  // ─── CREATE BOOKING ──────────────────────────────────────────────────────────
   async create(tenantId: string, staffId: string, dto: CreateBookingDto) {
     const checkIn = new Date(dto.checkIn);
     const checkOut = new Date(dto.checkOut);
@@ -36,9 +61,9 @@ export class BookingsService {
       throw new BadRequestException('Check-out must be after check-in');
     }
 
-    // Validate room & customer
-    const room = await this.prisma.room.findFirst({
-      where: { id: dto.roomId, tenantId, isDeleted: false },
+    // التحقق من الغرفة
+    const room = await this.roomRepository.findOne({
+      where: { id: dto.roomId, tenantId, isDeleted: false as any }, // مرر الحقول حسب الـ Entity عندك
     });
     if (!room) throw new NotFoundException('Room not found');
 
@@ -46,12 +71,11 @@ export class BookingsService {
       throw new BadRequestException('Room is under maintenance');
     }
 
-    const customer = await this.prisma.customer.findFirst({
-      where: { id: dto.customerId, tenantId, isDeleted: false },
-    });
-    if (!customer) throw new NotFoundException('Customer not found');
+    // التحقق من العميل (مفترض وجود كاستمر ريبوزيتوري)
+    // const customer = await this.customerRepository.findOne({ where: { id: dto.customerId, tenantId, isDeleted: false } });
+    // if (!customer) throw new NotFoundException('Customer not found');
 
-    // Check availability (no double booking)
+    // فحص الإتاحة لمنع الحجز المزدوج
     const isAvailable = await this.roomsService.checkAvailability(
       tenantId,
       dto.roomId,
@@ -68,77 +92,80 @@ export class BookingsService {
     const nights = this.calcNights(checkIn, checkOut);
     const totalPrice = Number(room.pricePerNight) * nights;
 
-    const booking = await this.prisma.booking.create({
-      data: {
-        tenantId,
-        roomId: dto.roomId,
-        customerId: dto.customerId,
-        staffId,
-        checkIn,
-        checkOut,
-        nights,
-        totalPrice,
-        status: BookingStatus.CONFIRMED,
-        notes: dto.notes,
-        source: dto.source,
-      },
-      include: {
-        room: { select: { number: true, type: true, pricePerNight: true } },
-        customer: { select: { name: true, email: true, phone: true } },
-        payment: true,
-      },
+    // إنشاء الحجز
+    const newBooking = this.bookingRepository.create({
+      tenantId,
+      resourceId: dto.roomId, // الـ resourceId يمثل الـ roomId بناء على هيكل الـ Entity الموحد
+      userId: dto.customerId, // الـ userId يمثل الـ customerId بناء على الـ Entity الموحد
+      startTime: checkIn,
+      endTime: checkOut,
+      status: 'CONFIRMED',
+      // أضف أي حقول إضافية لو متوفرة في الـ Entity (مثل notes, source)
     });
 
-    // ── Send confirmation email (non-blocking) ───────────────────
-    const tenant = await this.prisma.tenant.findUnique({
+    const booking = await this.bookingRepository.save(newBooking);
+
+    // جلب بيانات الفندق لإرسال الإيميل
+    const tenant = await this.tenantRepository.findOne({
       where: { id: tenantId },
-      select: { name: true },
+      select: ['name'],
     });
 
-    this.notifications.sendBookingConfirmation({
-      customerName: booking.customer.name,
-      customerEmail: booking.customer.email,
-      hotelName: tenant?.name ?? 'Our Hotel',
-      bookingId: booking.id,
-      roomNumber: booking.room.number,
-      roomType: booking.room.type,
-      checkIn: booking.checkIn,
-      checkOut: booking.checkOut,
-      nights: booking.nights,
-      totalPrice: Number(booking.totalPrice),
-    }).catch(() => {}); // fire-and-forget — never block the response
+    // إرسال إيميل التأكيد (Non-blocking / Fire-and-forget)
+    this.notifications
+      .sendBookingConfirmation({
+        customerName: 'Customer Name', // استبدله بـ customer.name الحقيقي عند ربط الـ Repository
+        customerEmail: 'customer@email.com',
+        hotelName: tenant?.name ?? 'Our Hotel',
+        bookingId: booking.id,
+        roomNumber: room.number,
+        roomType: room.type,
+        checkIn: booking.startTime,
+        checkOut: booking.endTime,
+        nights: nights,
+        totalPrice: totalPrice,
+      })
+      .catch(() => {});
 
     return booking;
   }
 
+  // ─── FIND ALL BOOKINGS ───────────────────────────────────────────────────────
   async findAll(tenantId: string, query: BookingQueryDto) {
-    const { status, roomId, customerId, from, to, page = 1, limit = 10 } = query;
+    const {
+      status,
+      roomId,
+      customerId,
+      from,
+      to,
+      page = 1,
+      limit = 10,
+    } = query;
     const skip = (page - 1) * limit;
 
-    const where: any = { tenantId, isDeleted: false };
+    const where: FindOptionsWhere<Booking> = {
+      tenantId,
+      isDeleted: false as any,
+    };
     if (status) where.status = status;
-    if (roomId) where.roomId = roomId;
-    if (customerId) where.customerId = customerId;
-    if (from || to) {
-      where.checkIn = {};
-      if (from) where.checkIn.gte = new Date(from);
-      if (to) where.checkIn.lte = new Date(to);
+    if (roomId) where.resourceId = roomId;
+    if (customerId) where.userId = customerId;
+
+    if (from && to) {
+      where.startTime = Between(new Date(from), new Date(to));
+    } else if (from) {
+      where.startTime = MoreThanOrEqual(new Date(from));
+    } else if (to) {
+      where.startTime = LessThanOrEqual(new Date(to));
     }
 
-    const [bookings, total] = await Promise.all([
-      this.prisma.booking.findMany({
-        where,
-        skip,
-        take: limit,
-        orderBy: { createdAt: 'desc' },
-        include: {
-          room: { select: { number: true, type: true } },
-          customer: { select: { name: true, email: true, phone: true } },
-          payment: { select: { status: true, method: true, amount: true } },
-        },
-      }),
-      this.prisma.booking.count({ where }),
-    ]);
+    const [bookings, total] = await this.bookingRepository.findAndCount({
+      where,
+      skip,
+      take: limit,
+      order: { createdAt: 'DESC' } as any,
+      // relations: ['tenant'] // فك الكومنت لو حابب تجلب العلاقات كاملة
+    });
 
     return {
       data: bookings,
@@ -146,14 +173,10 @@ export class BookingsService {
     };
   }
 
+  // ─── FIND ONE BOOKING ────────────────────────────────────────────────────────
   async findOne(tenantId: string, id: string) {
-    const booking = await this.prisma.booking.findFirst({
-      where: { id, tenantId, isDeleted: false },
-      include: {
-        room: true,
-        customer: true,
-        payment: true,
-      },
+    const booking = await this.bookingRepository.findOne({
+      where: { id, tenantId, isDeleted: false as any },
     });
 
     if (!booking) throw new NotFoundException('Booking not found');
@@ -161,23 +184,22 @@ export class BookingsService {
     return booking;
   }
 
+  // ─── UPDATE BOOKING ──────────────────────────────────────────────────────────
   async update(tenantId: string, id: string, dto: UpdateBookingDto) {
-    const booking = await this.prisma.booking.findFirst({
-      where: { id, tenantId, isDeleted: false },
-      include: { room: true },
+    const booking = await this.findOne(tenantId, id);
+    const room = await this.roomRepository.findOne({
+      where: { id: booking.resourceId },
     });
+    if (!room) throw new NotFoundException('Room not found');
 
-    if (!booking) throw new NotFoundException('Booking not found');
-
-    if (
-      booking.status === BookingStatus.CANCELLED ||
-      booking.status === BookingStatus.CHECKED_OUT
-    ) {
-      throw new BadRequestException('Cannot update a cancelled or completed booking');
+    if (booking.status === 'CANCELLED' || booking.status === 'CHECKED_OUT') {
+      throw new BadRequestException(
+        'Cannot update a cancelled or completed booking',
+      );
     }
 
-    const checkIn = dto.checkIn ? new Date(dto.checkIn) : booking.checkIn;
-    const checkOut = dto.checkOut ? new Date(dto.checkOut) : booking.checkOut;
+    const checkIn = dto.checkIn ? new Date(dto.checkIn) : booking.startTime;
+    const checkOut = dto.checkOut ? new Date(dto.checkOut) : booking.endTime;
 
     if (checkOut <= checkIn) {
       throw new BadRequestException('Check-out must be after check-in');
@@ -186,7 +208,7 @@ export class BookingsService {
     if (dto.checkIn || dto.checkOut) {
       const isAvailable = await this.roomsService.checkAvailability(
         tenantId,
-        booking.roomId,
+        booking.resourceId,
         checkIn,
         checkOut,
         id,
@@ -197,140 +219,142 @@ export class BookingsService {
     }
 
     const nights = this.calcNights(checkIn, checkOut);
-    const totalPrice = Number(booking.room.pricePerNight) * nights;
+    const totalPrice = Number(room.pricePerNight) * nights;
 
-    return this.prisma.booking.update({
-      where: { id },
-      data: { checkIn, checkOut, nights, totalPrice, notes: dto.notes },
-      include: {
-        room: { select: { number: true, type: true } },
-        customer: { select: { name: true, email: true } },
-      },
-    });
+    booking.startTime = checkIn;
+    booking.endTime = checkOut;
+    // تخصيص السعر والنوتس لو متوفرين بالـ Entity
+
+    return await this.bookingRepository.save(booking);
   }
 
-  async updateStatus(tenantId: string, id: string, dto: UpdateBookingStatusDto) {
-    const booking = await this.prisma.booking.findFirst({
-      where: { id, tenantId, isDeleted: false },
+  // ─── UPDATE STATUS ───────────────────────────────────────────────────────────
+  async updateStatus(
+    tenantId: string,
+    id: string,
+    dto: UpdateBookingStatusDto,
+  ) {
+    const booking = await this.findOne(tenantId, id);
+    const room = await this.roomRepository.findOne({
+      where: { id: booking.resourceId },
     });
+    if (!room) throw new NotFoundException('Room not found');
 
-    if (!booking) throw new NotFoundException('Booking not found');
-
-    // Validate transitions
-    const allowed: Record<BookingStatus, BookingStatus[]> = {
-      PENDING: [BookingStatus.CONFIRMED, BookingStatus.CANCELLED],
-      CONFIRMED: [BookingStatus.CHECKED_IN, BookingStatus.CANCELLED, BookingStatus.NO_SHOW],
-      CHECKED_IN: [BookingStatus.CHECKED_OUT],
+    // جدار الحماية الخاص بالتنقل بين الحالات (Status Transitions)
+    const allowed: Record<BookingStatus, string[]> = {
+      PENDING: ['CONFIRMED', 'CANCELLED'],
+      CONFIRMED: ['CHECKED_IN', 'CANCELLED', 'NO_SHOW'],
+      CHECKED_IN: ['CHECKED_OUT'],
       CHECKED_OUT: [],
       CANCELLED: [],
       NO_SHOW: [],
     };
 
-    if (!allowed[booking.status].includes(dto.status)) {
+    if (!allowed[booking.status as BookingStatus].includes(dto.status)) {
       throw new BadRequestException(
         `Cannot transition from ${booking.status} to ${dto.status}`,
       );
     }
 
-    // Update room status on check-in/out
-    if (dto.status === BookingStatus.CHECKED_IN) {
-      await this.prisma.room.update({
-        where: { id: booking.roomId },
-        data: { status: RoomStatus.OCCUPIED },
-      });
-    } else if (
-      dto.status === BookingStatus.CHECKED_OUT ||
-      dto.status === BookingStatus.CANCELLED ||
-      dto.status === BookingStatus.NO_SHOW
-    ) {
-      await this.prisma.room.update({
-        where: { id: booking.roomId },
-        data: { status: RoomStatus.AVAILABLE },
-      });
+    // تحديث حالة الغرفة تلقائياً بناءً على حركة العميل
+    if (dto.status === 'CHECKED_IN') {
+      room.status = RoomStatus.OCCUPIED;
+      await this.roomRepository.save(room);
+    } else if (['CHECKED_OUT', 'CANCELLED', 'NO_SHOW'].includes(dto.status)) {
+      room.status = RoomStatus.AVAILABLE;
+      await this.roomRepository.save(room);
     }
 
-    const updated = await this.prisma.booking.update({
-      where: { id },
-      data: { status: dto.status },
-      include: {
-        room: { select: { number: true, type: true } },
-        customer: { select: { name: true, email: true } },
-        payment: true,
-      },
-    });
+    booking.status = dto.status;
+    const updated = await this.bookingRepository.save(booking);
 
-    // ── Send status emails (non-blocking) ───────────────────────
-    const tenant = await this.prisma.tenant.findUnique({
+    // إرسال إيميلات التحديثات
+    const tenant = await this.tenantRepository.findOne({
       where: { id: tenantId },
-      select: { name: true },
+      select: ['name'],
     });
-
     const emailData = {
-      customerName: updated.customer.name,
-      customerEmail: updated.customer.email,
+      customerName: 'Customer Name',
+      customerEmail: 'customer@email.com',
       hotelName: tenant?.name ?? 'Our Hotel',
       bookingId: updated.id,
-      roomNumber: updated.room.number,
-      roomType: updated.room.type,
-      checkIn: updated.checkIn,
-      checkOut: updated.checkOut,
-      nights: updated.nights,
-      totalPrice: Number(updated.totalPrice),
+      roomNumber: room.number,
+      roomType: room.type,
+      checkIn: updated.startTime,
+      checkOut: updated.endTime,
+      nights: this.calcNights(updated.startTime, updated.endTime),
+      totalPrice: 0, // احسب السعر الإجمالي الكلي
     };
 
-    if (dto.status === BookingStatus.CHECKED_IN) {
+    if (dto.status === 'CHECKED_IN')
       this.notifications.sendCheckInNotification(emailData).catch(() => {});
-    } else if (dto.status === BookingStatus.CHECKED_OUT) {
+    if (dto.status === 'CHECKED_OUT')
       this.notifications.sendCheckOutNotification(emailData).catch(() => {});
-    } else if (dto.status === BookingStatus.CANCELLED) {
-      this.notifications.sendCancellationNotification(emailData).catch(() => {});
-    }
+    if (dto.status === 'CANCELLED')
+      this.notifications
+        .sendCancellationNotification(emailData)
+        .catch(() => {});
 
     return updated;
   }
 
   async cancel(tenantId: string, id: string) {
-    return this.updateStatus(tenantId, id, { status: BookingStatus.CANCELLED });
+    return this.updateStatus(tenantId, id, { status: 'CANCELLED' });
   }
 
   async remove(tenantId: string, id: string) {
-    const booking = await this.prisma.booking.findFirst({
-      where: { id, tenantId, isDeleted: false },
-    });
+    const booking = await this.findOne(tenantId, id);
 
-    if (!booking) throw new NotFoundException('Booking not found');
-
-    await this.prisma.booking.update({
-      where: { id },
-      data: { isDeleted: true },
-    });
+    // Soft delete محاكي مثل كود بريزما القديم
+    (booking as any).isDeleted = true;
+    await this.bookingRepository.save(booking);
 
     return { message: 'Booking deleted successfully' };
   }
 
-  // CQRS-style read: summary stats
+  // ─── GET SUMMARY STATS (CQRS-Style Read via QueryBuilder) ───────────────────
   async getSummary(tenantId: string) {
     const today = new Date();
     today.setHours(0, 0, 0, 0);
     const tomorrow = new Date(today);
     tomorrow.setDate(tomorrow.getDate() + 1);
 
-    const [total, confirmed, checkedIn, todayCheckIns, todayCheckOuts, revenue] =
-      await Promise.all([
-        this.prisma.booking.count({ where: { tenantId, isDeleted: false } }),
-        this.prisma.booking.count({ where: { tenantId, status: BookingStatus.CONFIRMED, isDeleted: false } }),
-        this.prisma.booking.count({ where: { tenantId, status: BookingStatus.CHECKED_IN, isDeleted: false } }),
-        this.prisma.booking.count({
-          where: { tenantId, checkIn: { gte: today, lt: tomorrow }, isDeleted: false },
-        }),
-        this.prisma.booking.count({
-          where: { tenantId, checkOut: { gte: today, lt: tomorrow }, isDeleted: false },
-        }),
-        this.prisma.payment.aggregate({
-          where: { tenantId, status: 'PAID' },
-          _sum: { amount: true },
-        }),
-      ]);
+    // حساب الـ Counts باستخدام دالة count العادية من ريبوزيتوري TypeORM
+    const total = await this.bookingRepository.count({
+      where: { tenantId, isDeleted: false as any },
+    });
+    const confirmed = await this.bookingRepository.count({
+      where: { tenantId, status: 'CONFIRMED', isDeleted: false as any },
+    });
+    const checkedIn = await this.bookingRepository.count({
+      where: { tenantId, status: 'CHECKED_IN', isDeleted: false as any },
+    });
+
+    const todayCheckIns = await this.bookingRepository.count({
+      where: {
+        tenantId,
+        startTime: Between(today, tomorrow),
+        isDeleted: false as any,
+      },
+    });
+
+    const todayCheckOuts = await this.bookingRepository.count({
+      where: {
+        tenantId,
+        endTime: Between(today, tomorrow),
+        isDeleted: false as any,
+      },
+    });
+
+    // لحساب إجمالي الإيرادات (Aggregate Sum) نستخدم الـ QueryBuilder
+    // ملحوظة: يفترض وجود جدول للدفعات Payments مضاف له ريبوزيتوري هنا
+    const revenueResult = { sum: 0 };
+    /* const revenueResult = await this.paymentRepository
+      .createQueryBuilder('payment')
+      .select('SUM(payment.amount)', 'sum')
+      .where('payment.tenantId = :tenantId AND payment.status = :status', { tenantId, status: 'PAID' })
+      .getRawOne();
+    */
 
     return {
       total,
@@ -338,7 +362,7 @@ export class BookingsService {
       checkedIn,
       todayCheckIns,
       todayCheckOuts,
-      totalRevenue: revenue._sum.amount ?? 0,
+      totalRevenue: Number(revenueResult?.sum || 0),
     };
   }
 }

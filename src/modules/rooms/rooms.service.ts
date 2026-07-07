@@ -1,80 +1,114 @@
-// // src/modules/rooms/rooms.service.ts
-// import { Injectable, NotFoundException } from '@nestjs/common';
-// import { PrismaService } from '../../prisma/prisma.service'; // تأكد من المسار
-// import { CreateRoomDto } from './dto/create-room.dto';
-// import { UpdateRoomDto } from './dto/update-room.dto'; // تأكد من وجوده
+import { Injectable, NotFoundException, ConflictException, InternalServerErrorException } from '@nestjs/common';
+import { InjectRepository } from '@nestjs/typeorm';
+import { Repository, Not, LessThanOrEqual, MoreThanOrEqual } from 'typeorm';
+import { Room } from './entities/room.entity';
+import { CreateRoomDto } from './dto/create-room.dto';
+import { UpdateRoomDto } from './dto/update-room.dto';
+import { Booking } from '../bookings/entities/booking.entity'; // تأكد من مسار الـ Booking entity
 
-// @Injectable()
-// export class RoomsService {
-//   delete(id: string) {
-//     throw new Error('Method not implemented.');
-//   }
-//   constructor(private prisma: PrismaService) {}
+@Injectable()
+export class RoomsService {
+  constructor(
+    @InjectRepository(Room)
+    private readonly roomRepository: Repository<Room>, // حقن ريبوزيتوري الغرف
+    
+    @InjectRepository(Booking)
+    private readonly bookingRepository: Repository<Booking>, // حقن ريبوزيتوري الحجوزات لتشغيل دالة الفحص
+  ) {}
 
-//   async create(dto: CreateRoomDto) {
-//     return await this.prisma.room.create({
-//       data: {
-//         number: dto.number,
-//         type: dto.type,
-//         pricePerNight: dto.pricePerNight,
-//         capacity: dto.capacity,
-//         status: dto.status,
-//         // الربط مع الـ Tenant يتم عبر الـ ID
-//         tenant: {
-//           connect: { id: dto.tenantId } 
-//         }
-//       },
-//       include: {
-//         tenant: true, // اختياري: إذا أردت إرجاع بيانات الـ tenant فور الإنشاء
-//       }
-//     });
-//   }
+  // ─── 1. CREATE ROOM ─────────────────────────────────────────────────────────
+  async create(dto: CreateRoomDto): Promise<Room> {
+    try {
+      const newRoom = this.roomRepository.create({
+        number: dto.number,
+        type: dto.type,
+        pricePerNight: dto.pricePerNight,
+        capacity: dto.capacity,
+        status: dto.status,
+        tenantId: dto.tenantId, // ربط مباشر بالـ UUID الخاص بالفندق
+      });
 
-//   async findAll() {
-//     return this.prisma.room.findMany({
-//       include: {
-//         tenant: {
-//           select: {
-//             id: true,
-//             name: true, // يفضل اختيار حقول معينة بدلاً من true لجلب كل شيء
-//           }
-//         },
-//       },
-//       orderBy: {
-//         createdAt: 'desc', // ترتيب الغرف من الأحدث للأقدم
-//       }
-//     });
-//   }
+      return await this.roomRepository.save(newRoom);
+    } catch (err) {
+      if ((err as { code?: string }).code === '23505') {
+        throw new ConflictException('Room number already exists in this hotel');
+      }
+      throw new InternalServerErrorException('Could not create room');
+    }
+  }
 
-//   async findOne(id: string) {
-//     const room = await this.prisma.room.findUnique({
-//       where: { id },
-//       include: {
-//         tenant: true,
-//       },
-//     });
+  // ─── 2. FIND ALL ROOMS ──────────────────────────────────────────────────────
+  async findAll(tenantId?: string): Promise<Room[]> {
+    const whereClause: any = { isDeleted: false };
+    if (tenantId) whereClause.tenantId = tenantId; // فلترة الغرف حسب الفندق لو ممرر
 
-//     if (!room) {
-//       throw new NotFoundException(`Room with ID ${id} not found`);
-//     }
+    return await this.roomRepository.find({
+      where: whereClause,
+      relations: ['tenant'], // جلب بيانات الـ tenant (الفندق) المرتبط
+      order: { createdAt: 'DESC' },
+    });
+  }
 
-//     return room;
-//   }
+  // ─── 3. FIND ONE ROOM ───────────────────────────────────────────────────────
+  async findOne(id: string): Promise<Room> {
+    const room = await this.roomRepository.findOne({
+      where: { id, isDeleted: false },
+      relations: ['tenant'],
+    });
 
-//   async update(id: string, dto: UpdateRoomDto) {
-//     // التأكد من وجود الغرفة أولاً
-//     await this.findOne(id);
+    if (!room) {
+      throw new NotFoundException(`Room with ID ${id} not found`);
+    }
 
-//     return this.prisma.room.update({
-//       where: { id },
-//       data: dto,
-//     });
-//   }
+    return room;
+  }
 
-//   async remove(id: string) {
-//     await this.findOne(id);
-//     return this.prisma.room.delete({
-//       where: { id },
-//     });
-//   }
-// }
+  // ─── 4. UPDATE ROOM ─────────────────────────────────────────────────────────
+  async update(id: string, dto: UpdateRoomDto): Promise<Room> {
+    const room = await this.findOne(id); // هيطلع 404 لو مش موجود
+    
+    this.roomRepository.merge(room, dto);
+    return await this.roomRepository.save(room);
+  }
+
+  // ─── 5. REMOVE ROOM (SOFT DELETE) ──────────────────────────────────────────
+  async remove(id: string): Promise<{ message: string }> {
+    const room = await this.findOne(id);
+    
+    room.isDeleted = true; // تحويل الحقل لـ true لمحاكاة الحذف الآمن
+    await this.roomRepository.save(room);
+    
+    return { message: `Room #${room.number} deleted successfully` };
+  }
+
+  // ─── 6. CHECK AVAILABILITY (الدالة الحرجة اللي مستنياها الـ Bookings) ───────
+  async checkAvailability(
+    tenantId: string,
+    roomId: string,
+    checkIn: Date,
+    checkOut: Date,
+    excludeBookingId?: string,
+  ): Promise<boolean> {
+    // بناء Query مخصص للبحث عن وجود أي تداخل في التواريخ لنفس الغرفة
+    const query = this.bookingRepository
+      .createQueryBuilder('booking')
+      .where('booking.tenantId = :tenantId', { tenantId })
+      .andWhere('booking.resourceId = :roomId', { roomId }) // resourceId يمثل الـ roomId بالـ Entity الموحد
+      .andWhere('booking.status NOT IN (:...badStatuses)', { badStatuses: ['CANCELLED', 'NO_SHOW'] })
+      .andWhere('booking.isDeleted = false')
+      .andWhere(
+        '(booking.startTime < :checkOut AND booking.endTime > :checkIn)',
+        { checkIn, checkOut },
+      );
+
+    // لو بنعمل تعديل لحجز قائم، بنتجاهل الـ id بتاعه عشان ميعملش تداخل مع نفسه
+    if (excludeBookingId) {
+      query.andWhere('booking.id != :excludeBookingId', { excludeBookingId });
+    }
+
+    const conflictingBooking = await query.getOne();
+    
+    // لو لقى حجز متداخل يرجع false (الغرفة غير متاحة)، غير كدة يرجع true
+    return !conflictingBooking;
+  }
+}

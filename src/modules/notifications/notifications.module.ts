@@ -1,5 +1,5 @@
 import { Global, Module } from '@nestjs/common';
-import { MailerService } from './mailer.service';
+import { MailerService } from '../MailerService/mailer.service';
 import { NotificationsService } from './notifications.service';
 
 @Global() // available everywhere without re-importing

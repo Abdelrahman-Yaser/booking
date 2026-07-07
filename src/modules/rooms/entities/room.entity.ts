@@ -1,33 +1,57 @@
-// // src/modules/rooms/entities/room.entity.ts
-// // import { Entity, PrimaryGeneratedColumn, Column, ManyToOne, OneToMany } from 'typeorm';
-// import { Tenant } from '../../tenants/entities/tenant.entity';
+import {
+  Entity,
+  PrimaryGeneratedColumn,
+  Column,
+  ManyToOne,
+  CreateDateColumn,
+  UpdateDateColumn,
+  JoinColumn,
+} from 'typeorm';
+import { Tenant } from '../../tenants/entities/tenant.entity';
 
-// // export enum RoomType   { SINGLE = 'SINGLE', DOUBLE = 'DOUBLE', SUITE = 'SUITE' }
-// // export enum RoomStatus { AVAILABLE = 'AVAILABLE', OCCUPIED = 'OCCUPIED', MAINTENANCE = 'MAINTENANCE' }
+export enum RoomType {
+  SINGLE = 'SINGLE',
+  DOUBLE = 'DOUBLE',
+  SUITE = 'SUITE',
+}
 
-// @Entity('rooms')
-// export class Room {
-//   @PrimaryGeneratedColumn('uuid')
-//   id!: string;
+export enum RoomStatus {
+  AVAILABLE = 'AVAILABLE',
+  OCCUPIED = 'OCCUPIED',
+  MAINTENANCE = 'MAINTENANCE',
+}
 
-//   @Column()
-//   number!: string;
+@Entity('rooms')
+export class Room {
+  @PrimaryGeneratedColumn('uuid')
+  id!: string;
 
-//   @Column({ type: 'enum', enum: RoomType })
-//   type!: RoomType;
+  @Column({ type: 'varchar', length: 50 })
+  number!: string;
 
-//   @Column('decimal', { precision: 10, scale: 2 })
-//   pricePerNight!: number;
+  @Column({ type: 'enum', enum: RoomType })
+  type!: RoomType;
 
-//   @Column({ default: 1 })
-//   capacity!: number;
+  @Column('decimal', { precision: 10, scale: 2 })
+  pricePerNight!: number;
 
-//   @Column({ type: 'enum', enum: RoomStatus, default: RoomStatus.AVAILABLE })
-//   status!: RoomStatus;
+  @Column({ type: 'int', default: 1 })
+  capacity!: number;
 
-//   @ManyToOne(() => Tenant, tenant => tenant.rooms)
-//   tenant!: Tenant;          // multi-tenant: every room belongs to a tenant/hotel
+  @Column({ type: 'enum', enum: RoomStatus, default: RoomStatus.AVAILABLE })
+  status!: RoomStatus;
 
-//   @CreateDateColumn()
-//   createdAt!: Date;
-// }
+  // معرف التينانت كـ string متوافق مع الـ UUID
+  @Column({ type: 'uuid' })
+  tenantId!: string;
+
+  @ManyToOne(() => Tenant, (tenant) => tenant.rooms, { onDelete: 'CASCADE' })
+  @JoinColumn({ name: 'tenantId' })
+  tenant!: Tenant;
+
+  @CreateDateColumn({ type: 'timestamp' })
+  createdAt!: Date;
+
+  @UpdateDateColumn({ type: 'timestamp' })
+  updatedAt!: Date;
+}

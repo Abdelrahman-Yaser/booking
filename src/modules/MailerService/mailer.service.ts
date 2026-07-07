@@ -60,8 +60,8 @@ export class MailerService {
       this.logger.log(`Email sent → ${options.to} | MsgId: ${info.messageId}`);
       return true;
     } catch (error) {
-      // Log but never crash the main flow — email is non-blocking
-      this.logger.error(`Failed to send email to ${options.to}`, error?.message);
+      // 💡 تحويل الـ error إلى any لتجنب مشكلة تفتيش TypeScript على حقل message
+      this.logger.error(`Failed to send email to ${options.to}`, (error as any)?.message);
       return false;
     }
   }
@@ -72,7 +72,8 @@ export class MailerService {
       this.logger.log('✅ Mail server connection verified');
       return true;
     } catch (error) {
-      this.logger.warn(`⚠️ Mail server not reachable: ${error?.message}`);
+      // 💡 تم تنظيف التداخل السطري بالكامل وعمل كاستنج صحيح للـ error
+      this.logger.warn(`⚠️ Mail server not reachable: ${(error as any)?.message}`);
       return false;
     }
   }

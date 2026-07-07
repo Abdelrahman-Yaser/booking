@@ -7,15 +7,15 @@ import {
   BeforeInsert,
   OneToMany,
 } from 'typeorm';
-import slugify from 'slugify'; // مكتبة ممتازة لتوليد الـ slugs (تحتاج تثبيتها: npm i slugify)
-import { User } from '../../auth/entities/auth.entity'; // فك الكومنت لما تعمل الـ entities التانية
-// import { Service } from '../../service.entity';
+import slugify from 'slugify';
+import { User } from '../../auth/entities/auth.entity';
 import { Booking } from '../../bookings/entities/booking.entity';
+import { Room } from '../../rooms/entities/room.entity';
 
-@Entity('tenants') // تحديد اسم الجدول في قاعدة البيانات
+@Entity('tenants')
 export class Tenant {
-  @PrimaryGeneratedColumn()
-  id!: number;
+  @PrimaryGeneratedColumn('uuid') // <--- تعديل لـ uuid
+  id!: string; // <--- تعديل لـ string
 
   @Column({ type: 'varchar', length: 255 })
   name!: string;
@@ -39,17 +39,19 @@ export class Tenant {
   @OneToMany(() => User, (user) => user.tenant)
   users!: User[];
 
+  @OneToMany(() => Room, (room) => room.tenant)
+  rooms!: Room[];
+
   @OneToMany(() => Booking, (booking) => booking.tenant)
   bookings!: Booking[];
 
-  // --- توليد الـ Slug تلقائياً قبل الحفظ في القاعدة ---
   @BeforeInsert()
   generateSlug() {
     if (this.name && !this.slug) {
       this.slug = slugify(this.name, {
-        lower: true, // تحويل الحروف لـ lowercase
-        strict: true, // إزالة الرموز الخاصة مثل @, #, $
-        replacement: '-', // استبدال المسافات بشرطة
+        lower: true,
+        strict: true,
+        replacement: '-',
       });
     }
   }

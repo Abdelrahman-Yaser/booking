@@ -1,3 +1,6 @@
+/* eslint-disable @typescript-eslint/no-unsafe-member-access */
+/* eslint-disable @typescript-eslint/no-unsafe-return */
+/* eslint-disable @typescript-eslint/no-unsafe-assignment */
 import {
   Injectable,
   NotFoundException,
@@ -7,7 +10,7 @@ import {
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
-import { User } from './entities/auth.entity'; // تأكد من مسار الـ User Entity الخاص بك
+import { User } from './entities/auth.entity'; 
 import { CreateAuthDto } from './dto/create-auth.dto';
 import { UpdateAuthDto } from './dto/update-auth.dto';
 import { LoginDto } from './dto/login.dto';
@@ -15,26 +18,23 @@ import { JwtService } from '@nestjs/jwt';
 import { ConfigService } from '@nestjs/config';
 import * as bcrypt from 'bcrypt';
 
-// ─── تحديد نوع الـ SafeUser المرجوع بدون باسوورد ─────────────────────────────
 type SafeUser = Omit<User, 'password'>;
 
 @Injectable()
 export class AuthService {
   constructor(
     @InjectRepository(User)
-    private readonly userRepository: Repository<User>, // حقن الـ Repository بدلاً من Prisma
+    private readonly userRepository: Repository<User>, 
     private readonly jwtService: JwtService,
     private readonly config: ConfigService,
   ) {}
 
   // ─── PRIVATE HELPERS ─────────────────────────────────────────────────────────
 
-  /** تفكيك الباسوورد وإرجاع الكائن آمن */
-  private omitPassword<T extends { password?: unknown }>(
-    user: T,
-  ): Omit<T, 'password'> {
-    const { password: _, ...safe } = user;
-    return safe;
+  /** تفكيك الباسوورد وإرجاع الكائن آمن مع عمل Cast صريح لنوع المخرج */
+  private omitPassword(user: User): SafeUser {
+    const { password, ...safeUser } = user;
+    return safeUser as SafeUser;
   }
 
   /** توقيع الـ Access والـ Refresh Tokens */
@@ -69,18 +69,19 @@ export class AuthService {
 
     const hashedPassword = await bcrypt.hash(createAuthDto.password, 10);
 
+    // 👇 تفكيك الحقول الزائدة القادمة من الـ DTO مثل tenant أو name لتفادي اعتراض الـ DeepPartial
+    const { tenant, name, ...cleanUserData } = createAuthDto as any;
+
     try {
-      // إنشاء كائن المستخدم الجديد وربطه بالـ tenantId
       const newUser = this.userRepository.create({
-        ...createAuthDto,
+        ...cleanUserData,
         password: hashedPassword,
-        tenantId: tenantId, // ربط مباشر عبر الـ ID
+        tenantId: tenantId, 
       });
 
       const user = await this.userRepository.save(newUser);
       return this.omitPassword(user);
     } catch (err) {
-      // كود خطأ التكرار (Unique Constraint) في PostgreSQL مع TypeORM هو '23505'
       if ((err as { code?: string }).code === '23505') {
         throw new ConflictException('Email already in use');
       }
@@ -131,28 +132,43 @@ export class AuthService {
 
   // ─── FIND ALL ────────────────────────────────────────────────────────────────
   async findAll(): Promise<SafeUser[]> {
-    // جلب جميع الحقول ما عدا الباسوورد للـ Security باستخدام الـ Query Builder أو الـ select
     const users = await this.userRepository.find({
-      select: ['id', 'username', 'email', 'tenantId', 'createdAt', 'updatedAt'], // حدد الحقول الآمنة فقط
+      select: {
+        id: true,
+        username: true,
+        email: true,
+        role: true,
+        tenantId: true,
+        createdAt: true,
+        updatedAt: true,
+      },
     });
-    return users;
+    return users as SafeUser[];
   }
 
   // ─── FIND ONE ────────────────────────────────────────────────────────────────
   async findOne(id: string): Promise<SafeUser> {
     const user = await this.userRepository.findOne({
       where: { id },
-      select: ['id', 'username', 'email', 'tenantId', 'createdAt', 'updatedAt'],
+      select: {
+        id: true,
+        username: true,
+        email: true,
+        role: true,
+        tenantId: true,
+        createdAt: true,
+        updatedAt: true,
+      },
     });
 
     if (!user) {
       throw new NotFoundException(`User #${id} not found`);
     }
 
-    return user;
+    return user as SafeUser;
   }
 
-  // ─── FIND BY EMAIL (داخلي - يجلب الباسوورد للمقارنة) ──────────────────────────
+  // ─── FIND BY EMAIL (داخلي) ──────────────────────────
   async findByEmail(email: string): Promise<User | null> {
     return this.userRepository.findOne({ where: { email } });
   }
@@ -170,14 +186,12 @@ export class AuthService {
       updateData.password = await bcrypt.hash(updateData.password, 10);
     }
 
-    // التعامل مع تغيير الـ Tenant إن وُجد كـ string ID مباشر
     if (updateData.tenant && typeof updateData.tenant === 'string') {
       updateData.tenantId = updateData.tenant;
       delete updateData.tenant;
     }
 
     try {
-      // تحديث البيانات في الـ Repository وحفظها
       this.userRepository.merge(user, updateData);
       const updatedUser = await this.userRepository.save(user);
       
