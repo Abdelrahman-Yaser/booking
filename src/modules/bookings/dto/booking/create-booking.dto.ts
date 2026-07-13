@@ -31,3 +31,13 @@ export class CreateBookingDto {
   @IsIn(['pending', 'confirmed', 'cancelled'], { message: 'الحالة غير صحيحة' })
   status?: string;
 }
+import { IsEnum, IsNotEmpty, } from 'class-validator';
+
+export class UpdateBookingStatusDto {
+  @IsString({ message: 'الحالة يجب أن تكون نصاً صريحاً' })
+  @IsNotEmpty({ message: 'حالة الحجز مطلوبة ولا يمكن إرسالها فارغة' })
+  @IsEnum(['PENDING', 'CONFIRMED', 'CHECKED_IN', 'CHECKED_OUT', 'CANCELLED', 'NO_SHOW'], {
+    message: 'الحالة المرسلة غير صحيحة! القيم المسموحة هي: PENDING, CONFIRMED, CHECKED_IN, CHECKED_OUT, CANCELLED, NO_SHOW',
+  })
+  status!: 'PENDING' | 'CONFIRMED' | 'CHECKED_IN' | 'CHECKED_OUT' | 'CANCELLED' | 'NO_SHOW';
+}

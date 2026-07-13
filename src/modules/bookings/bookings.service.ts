@@ -15,14 +15,14 @@ import {
 import { Booking } from './entities/booking.entity';
 import { Room, RoomStatus } from '../rooms/entities/room.entity';
 import { Tenant } from '../tenants/entities/tenant.entity';
-// import { Customer } from '../customers/entities/customer.entity'; // فك الكومنت عند توفر الـ Entity
-// import { Payment } from '../payments/entities/payment.entity';
 import { RoomsService } from '../rooms/rooms.service';
 import { NotificationsService } from '../notifications/notifications.service';
-import { CreateBookingDto } from './dto/booking/create-booking.dto';
-import { UpdateBookingDto } from './dto/booking/update-booking.dto'; // تأكد من اسم ومسار ملف الـ DTO عندك
-import { BookingQueryDto } from './dto/booking/BookingQueryDto';
-// تعريف الـ Statuses يدوياً كنصوص طالما تخلصنا من @prisma/client
+
+// إستيراد الـ DTOs الخاصة بك
+import { CreateBookingDto,UpdateBookingStatusDto } from './dto/booking/create-booking.dto'; 
+import { UpdateBookingDto } from './dto/booking/update-booking.dto';
+import { BookingQueryDto } from './dto/booking/BookingQueryDto';  
+
 export type BookingStatus =
   | 'PENDING'
   | 'CONFIRMED'
@@ -40,8 +40,6 @@ export class BookingsService {
     private readonly roomRepository: Repository<Room>,
     @InjectRepository(Tenant)
     private readonly tenantRepository: Repository<Tenant>,
-    // @InjectRepository(Customer) private readonly customerRepository: Repository<Customer>,
-    // @InjectRepository(Payment) private readonly paymentRepository: Repository<Payment>,
 
     private readonly roomsService: RoomsService,
     private readonly notifications: NotificationsService,
@@ -54,67 +52,58 @@ export class BookingsService {
 
   // ─── CREATE BOOKING ──────────────────────────────────────────────────────────
   async create(tenantId: string, staffId: string, dto: CreateBookingDto) {
-    const checkIn = new Date(dto.checkIn);
-    const checkOut = new Date(dto.checkOut);
+    // 👇 تم التحديث لتقرأ startTime و endTime من الـ DTO بتاعك مباشرة
+    const checkIn = new Date(dto.startTime);
+    const checkOut = new Date(dto.endTime);
 
     if (checkOut <= checkIn) {
       throw new BadRequestException('Check-out must be after check-in');
     }
 
-    // التحقق من الغرفة
+    // 👇 تم التحديث لتقرأ resourceId بدلاً من roomId القديمة
     const room = await this.roomRepository.findOne({
-      where: { id: dto.roomId, tenantId, isDeleted: false as any }, // مرر الحقول حسب الـ Entity عندك
+      where: { id: dto.resourceId, tenantId },
     });
-    if (!room) throw new NotFoundException('Room not found');
+    if (!room || (room as any).isDeleted) throw new NotFoundException('Room not found');
 
     if (room.status === RoomStatus.MAINTENANCE) {
       throw new BadRequestException('Room is under maintenance');
     }
 
-    // التحقق من العميل (مفترض وجود كاستمر ريبوزيتوري)
-    // const customer = await this.customerRepository.findOne({ where: { id: dto.customerId, tenantId, isDeleted: false } });
-    // if (!customer) throw new NotFoundException('Customer not found');
-
-    // فحص الإتاحة لمنع الحجز المزدوج
     const isAvailable = await this.roomsService.checkAvailability(
       tenantId,
-      dto.roomId,
+      dto.resourceId,
       checkIn,
       checkOut,
     );
 
     if (!isAvailable) {
-      throw new ConflictException(
-        'Room is not available for the selected dates',
-      );
+      throw new ConflictException('Room is not available for the selected dates');
     }
 
     const nights = this.calcNights(checkIn, checkOut);
     const totalPrice = Number(room.pricePerNight) * nights;
 
-    // إنشاء الحجز
+    // 👇 التعديل السحري: حفظ البيانات بأسماء حقول الـ Entity والـ DTO المتناسقة تماماً
     const newBooking = this.bookingRepository.create({
       tenantId,
-      resourceId: dto.roomId, // الـ resourceId يمثل الـ roomId بناء على هيكل الـ Entity الموحد
-      userId: dto.customerId, // الـ userId يمثل الـ customerId بناء على الـ Entity الموحد
+      resourceId: dto.resourceId, 
+      userId: dto.userId || staffId, // لو العميل مش ممرر بنعتبر السيرفس اتعملت بواسطة الـ staff
       startTime: checkIn,
       endTime: checkOut,
       status: 'CONFIRMED',
-      // أضف أي حقول إضافية لو متوفرة في الـ Entity (مثل notes, source)
     });
 
     const booking = await this.bookingRepository.save(newBooking);
 
-    // جلب بيانات الفندق لإرسال الإيميل
     const tenant = await this.tenantRepository.findOne({
       where: { id: tenantId },
       select: ['name'],
     });
 
-    // إرسال إيميل التأكيد (Non-blocking / Fire-and-forget)
     this.notifications
       .sendBookingConfirmation({
-        customerName: 'Customer Name', // استبدله بـ customer.name الحقيقي عند ربط الـ Repository
+        customerName: 'Customer Name', 
         customerEmail: 'customer@email.com',
         hotelName: tenant?.name ?? 'Our Hotel',
         bookingId: booking.id,
@@ -132,20 +121,12 @@ export class BookingsService {
 
   // ─── FIND ALL BOOKINGS ───────────────────────────────────────────────────────
   async findAll(tenantId: string, query: BookingQueryDto) {
-    const {
-      status,
-      roomId,
-      customerId,
-      from,
-      to,
-      page = 1,
-      limit = 10,
-    } = query;
+    const { status, roomId, customerId, from, to, page = 1, limit = 10 } = query;
     const skip = (page - 1) * limit;
 
     const where: FindOptionsWhere<Booking> = {
       tenantId,
-      isDeleted: false as any,
+      isDeleted: false,
     };
     if (status) where.status = status;
     if (roomId) where.resourceId = roomId;
@@ -163,8 +144,7 @@ export class BookingsService {
       where,
       skip,
       take: limit,
-      order: { createdAt: 'DESC' } as any,
-      // relations: ['tenant'] // فك الكومنت لو حابب تجلب العلاقات كاملة
+      order: { createdAt: 'DESC' },
     });
 
     return {
@@ -176,7 +156,7 @@ export class BookingsService {
   // ─── FIND ONE BOOKING ────────────────────────────────────────────────────────
   async findOne(tenantId: string, id: string) {
     const booking = await this.bookingRepository.findOne({
-      where: { id, tenantId, isDeleted: false as any },
+      where: { id, tenantId, isDeleted: false },
     });
 
     if (!booking) throw new NotFoundException('Booking not found');
@@ -193,19 +173,18 @@ export class BookingsService {
     if (!room) throw new NotFoundException('Room not found');
 
     if (booking.status === 'CANCELLED' || booking.status === 'CHECKED_OUT') {
-      throw new BadRequestException(
-        'Cannot update a cancelled or completed booking',
-      );
+      throw new BadRequestException('Cannot update a cancelled or completed booking');
     }
 
-    const checkIn = dto.checkIn ? new Date(dto.checkIn) : booking.startTime;
-    const checkOut = dto.checkOut ? new Date(dto.checkOut) : booking.endTime;
+    // Update DTO uses startTime/endTime (consistent with create), fall back to existing booking times
+    const checkIn = dto.startTime ? new Date(dto.startTime) : booking.startTime;
+    const checkOut = dto.endTime ? new Date(dto.endTime) : booking.endTime;
 
     if (checkOut <= checkIn) {
       throw new BadRequestException('Check-out must be after check-in');
     }
 
-    if (dto.checkIn || dto.checkOut) {
+    if (dto.startTime || dto.endTime) {
       const isAvailable = await this.roomsService.checkAvailability(
         tenantId,
         booking.resourceId,
@@ -218,29 +197,20 @@ export class BookingsService {
       }
     }
 
-    const nights = this.calcNights(checkIn, checkOut);
-    const totalPrice = Number(room.pricePerNight) * nights;
-
     booking.startTime = checkIn;
     booking.endTime = checkOut;
-    // تخصيص السعر والنوتس لو متوفرين بالـ Entity
 
     return await this.bookingRepository.save(booking);
   }
 
   // ─── UPDATE STATUS ───────────────────────────────────────────────────────────
-  async updateStatus(
-    tenantId: string,
-    id: string,
-    dto: UpdateBookingStatusDto,
-  ) {
+  async updateStatus(tenantId: string, id: string, dto: UpdateBookingStatusDto) {
     const booking = await this.findOne(tenantId, id);
     const room = await this.roomRepository.findOne({
       where: { id: booking.resourceId },
     });
     if (!room) throw new NotFoundException('Room not found');
 
-    // جدار الحماية الخاص بالتنقل بين الحالات (Status Transitions)
     const allowed: Record<BookingStatus, string[]> = {
       PENDING: ['CONFIRMED', 'CANCELLED'],
       CONFIRMED: ['CHECKED_IN', 'CANCELLED', 'NO_SHOW'],
@@ -256,7 +226,6 @@ export class BookingsService {
       );
     }
 
-    // تحديث حالة الغرفة تلقائياً بناءً على حركة العميل
     if (dto.status === 'CHECKED_IN') {
       room.status = RoomStatus.OCCUPIED;
       await this.roomRepository.save(room);
@@ -268,11 +237,11 @@ export class BookingsService {
     booking.status = dto.status;
     const updated = await this.bookingRepository.save(booking);
 
-    // إرسال إيميلات التحديثات
     const tenant = await this.tenantRepository.findOne({
       where: { id: tenantId },
       select: ['name'],
     });
+    
     const emailData = {
       customerName: 'Customer Name',
       customerEmail: 'customer@email.com',
@@ -283,7 +252,7 @@ export class BookingsService {
       checkIn: updated.startTime,
       checkOut: updated.endTime,
       nights: this.calcNights(updated.startTime, updated.endTime),
-      totalPrice: 0, // احسب السعر الإجمالي الكلي
+      totalPrice: 0, 
     };
 
     if (dto.status === 'CHECKED_IN')
@@ -291,9 +260,7 @@ export class BookingsService {
     if (dto.status === 'CHECKED_OUT')
       this.notifications.sendCheckOutNotification(emailData).catch(() => {});
     if (dto.status === 'CANCELLED')
-      this.notifications
-        .sendCancellationNotification(emailData)
-        .catch(() => {});
+      this.notifications.sendCancellationNotification(emailData).catch(() => {});
 
     return updated;
   }
@@ -305,56 +272,32 @@ export class BookingsService {
   async remove(tenantId: string, id: string) {
     const booking = await this.findOne(tenantId, id);
 
-    // Soft delete محاكي مثل كود بريزما القديم
-    (booking as any).isDeleted = true;
+    booking.isDeleted = true; 
     await this.bookingRepository.save(booking);
 
     return { message: 'Booking deleted successfully' };
   }
 
-  // ─── GET SUMMARY STATS (CQRS-Style Read via QueryBuilder) ───────────────────
+  // ─── GET SUMMARY STATS ───────────────────────────────────────────────────────
   async getSummary(tenantId: string) {
     const today = new Date();
     today.setHours(0, 0, 0, 0);
     const tomorrow = new Date(today);
     tomorrow.setDate(tomorrow.getDate() + 1);
 
-    // حساب الـ Counts باستخدام دالة count العادية من ريبوزيتوري TypeORM
-    const total = await this.bookingRepository.count({
-      where: { tenantId, isDeleted: false as any },
-    });
-    const confirmed = await this.bookingRepository.count({
-      where: { tenantId, status: 'CONFIRMED', isDeleted: false as any },
-    });
-    const checkedIn = await this.bookingRepository.count({
-      where: { tenantId, status: 'CHECKED_IN', isDeleted: false as any },
-    });
+    const total = await this.bookingRepository.count({ where: { tenantId, isDeleted: false } });
+    const confirmed = await this.bookingRepository.count({ where: { tenantId, status: 'CONFIRMED', isDeleted: false } });
+    const checkedIn = await this.bookingRepository.count({ where: { tenantId, status: 'CHECKED_IN', isDeleted: false } });
 
     const todayCheckIns = await this.bookingRepository.count({
-      where: {
-        tenantId,
-        startTime: Between(today, tomorrow),
-        isDeleted: false as any,
-      },
+      where: { tenantId, startTime: Between(today, tomorrow), isDeleted: false },
     });
 
     const todayCheckOuts = await this.bookingRepository.count({
-      where: {
-        tenantId,
-        endTime: Between(today, tomorrow),
-        isDeleted: false as any,
-      },
+      where: { tenantId, endTime: Between(today, tomorrow), isDeleted: false },
     });
 
-    // لحساب إجمالي الإيرادات (Aggregate Sum) نستخدم الـ QueryBuilder
-    // ملحوظة: يفترض وجود جدول للدفعات Payments مضاف له ريبوزيتوري هنا
     const revenueResult = { sum: 0 };
-    /* const revenueResult = await this.paymentRepository
-      .createQueryBuilder('payment')
-      .select('SUM(payment.amount)', 'sum')
-      .where('payment.tenantId = :tenantId AND payment.status = :status', { tenantId, status: 'PAID' })
-      .getRawOne();
-    */
 
     return {
       total,

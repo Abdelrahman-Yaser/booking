@@ -1,19 +1,19 @@
 import { Injectable, NotFoundException, ConflictException, InternalServerErrorException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository, Not, LessThanOrEqual, MoreThanOrEqual } from 'typeorm';
+import { Repository, FindOptionsWhere } from 'typeorm'; // 👇 استيراد FindOptionsWhere لضمان الـ Types
 import { Room } from './entities/room.entity';
 import { CreateRoomDto } from './dto/create-room.dto';
 import { UpdateRoomDto } from './dto/update-room.dto';
-import { Booking } from '../bookings/entities/booking.entity'; // تأكد من مسار الـ Booking entity
+import { Booking } from '../bookings/entities/booking.entity';
 
 @Injectable()
 export class RoomsService {
   constructor(
     @InjectRepository(Room)
-    private readonly roomRepository: Repository<Room>, // حقن ريبوزيتوري الغرف
+    private readonly roomRepository: Repository<Room>,
     
     @InjectRepository(Booking)
-    private readonly bookingRepository: Repository<Booking>, // حقن ريبوزيتوري الحجوزات لتشغيل دالة الفحص
+    private readonly bookingRepository: Repository<Booking>,
   ) {}
 
   // ─── 1. CREATE ROOM ─────────────────────────────────────────────────────────
@@ -25,7 +25,7 @@ export class RoomsService {
         pricePerNight: dto.pricePerNight,
         capacity: dto.capacity,
         status: dto.status,
-        tenantId: dto.tenantId, // ربط مباشر بالـ UUID الخاص بالفندق
+        tenantId: dto.tenantId,
       });
 
       return await this.roomRepository.save(newRoom);
@@ -39,12 +39,13 @@ export class RoomsService {
 
   // ─── 2. FIND ALL ROOMS ──────────────────────────────────────────────────────
   async findAll(tenantId?: string): Promise<Room[]> {
-    const whereClause: any = { isDeleted: false };
-    if (tenantId) whereClause.tenantId = tenantId; // فلترة الغرف حسب الفندق لو ممرر
+    // ✨ التعديل هنا: تحديد النوع لتجنب استخدام any
+    const whereClause: FindOptionsWhere<Room> = { isDeleted: false };
+    if (tenantId) whereClause.tenantId = tenantId;
 
     return await this.roomRepository.find({
       where: whereClause,
-      relations: ['tenant'], // جلب بيانات الـ tenant (الفندق) المرتبط
+      relations: ['tenant'],
       order: { createdAt: 'DESC' },
     });
   }
@@ -65,7 +66,7 @@ export class RoomsService {
 
   // ─── 4. UPDATE ROOM ─────────────────────────────────────────────────────────
   async update(id: string, dto: UpdateRoomDto): Promise<Room> {
-    const room = await this.findOne(id); // هيطلع 404 لو مش موجود
+    const room = await this.findOne(id);
     
     this.roomRepository.merge(room, dto);
     return await this.roomRepository.save(room);
@@ -75,13 +76,13 @@ export class RoomsService {
   async remove(id: string): Promise<{ message: string }> {
     const room = await this.findOne(id);
     
-    room.isDeleted = true; // تحويل الحقل لـ true لمحاكاة الحذف الآمن
+    room.isDeleted = true;
     await this.roomRepository.save(room);
     
     return { message: `Room #${room.number} deleted successfully` };
   }
 
-  // ─── 6. CHECK AVAILABILITY (الدالة الحرجة اللي مستنياها الـ Bookings) ───────
+  // ─── 6. CHECK AVAILABILITY ──────────────────────────────────────────────────
   async checkAvailability(
     tenantId: string,
     roomId: string,
@@ -89,11 +90,10 @@ export class RoomsService {
     checkOut: Date,
     excludeBookingId?: string,
   ): Promise<boolean> {
-    // بناء Query مخصص للبحث عن وجود أي تداخل في التواريخ لنفس الغرفة
     const query = this.bookingRepository
       .createQueryBuilder('booking')
       .where('booking.tenantId = :tenantId', { tenantId })
-      .andWhere('booking.resourceId = :roomId', { roomId }) // resourceId يمثل الـ roomId بالـ Entity الموحد
+      .andWhere('booking.resourceId = :roomId', { roomId })
       .andWhere('booking.status NOT IN (:...badStatuses)', { badStatuses: ['CANCELLED', 'NO_SHOW'] })
       .andWhere('booking.isDeleted = false')
       .andWhere(
@@ -101,14 +101,12 @@ export class RoomsService {
         { checkIn, checkOut },
       );
 
-    // لو بنعمل تعديل لحجز قائم، بنتجاهل الـ id بتاعه عشان ميعملش تداخل مع نفسه
     if (excludeBookingId) {
       query.andWhere('booking.id != :excludeBookingId', { excludeBookingId });
     }
 
     const conflictingBooking = await query.getOne();
     
-    // لو لقى حجز متداخل يرجع false (الغرفة غير متاحة)، غير كدة يرجع true
     return !conflictingBooking;
   }
 }

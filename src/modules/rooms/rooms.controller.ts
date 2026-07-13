@@ -37,7 +37,6 @@ export class RoomsController {
 
   @Delete(':id')
   remove(@Param('id') id: string) {
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-return
-    return this.roomsService.delete(id);
+    return this.roomsService.remove(id);
   }
 }

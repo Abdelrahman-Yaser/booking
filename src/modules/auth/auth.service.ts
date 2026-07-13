@@ -32,7 +32,17 @@ export class AuthService {
   // ─── PRIVATE HELPERS ─────────────────────────────────────────────────────────
 
   /** تفكيك الباسوورد وإرجاع الكائن آمن مع عمل Cast صريح لنوع المخرج */
-  private omitPassword(user: User): SafeUser {
+  private omitPassword(user: User): SafeUser;
+  private omitPassword(user: User[]): SafeUser[];
+  private omitPassword(user: User | User[]): SafeUser | SafeUser[] {
+    if (Array.isArray(user)) {
+      return user.map(u => {
+        // eslint-disable-next-line @typescript-eslint/no-unused-vars
+        const { password, ...safeUser } = u;
+        return safeUser as SafeUser;
+      });
+    }
+
     const { password, ...safeUser } = user;
     return safeUser as SafeUser;
   }
@@ -142,8 +152,9 @@ export class AuthService {
         createdAt: true,
         updatedAt: true,
       },
-    });
-    return users as SafeUser[];
+    }) as User[];
+
+    return users.map(user => this.omitPassword(user));
   }
 
   // ─── FIND ONE ────────────────────────────────────────────────────────────────
