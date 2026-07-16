@@ -1,0 +1,1 @@
+'use client'; import React from 'react'; const Settings = () => { return (<div className='card'><div className='card-header'><h5>Settings</h5></div><div className='card-body'><p>Settings component content will be implemented here.</p></div></div>) }; export default Settings

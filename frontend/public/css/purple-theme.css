@@ -1,0 +1,126 @@
+/* Purple Theme - Replace Blue Colors Only - STRONG OVERRIDE */
+:root {
+  --color-blue-1: #530aa6 !important;
+  --color-blue-2: #f3f0ff !important;
+  --swiper-theme-color: #530aa6 !important;
+}
+
+/* Main action buttons - VERY SPECIFIC SELECTORS */
+button.btn.btn-primary,
+.btn.btn-primary,
+button.btn-primary,
+.button.-dark-1,
+button.button.-dark-1,
+.mainSearch__submit,
+button.mainSearch__submit,
+.search-btn,
+button.search-btn,
+input[type="submit"].btn-primary,
+a.btn.btn-primary,
+a.button.-dark-1 {
+  background-color: #530aa6 !important;
+  border-color: #530aa6 !important;
+  color: #ffffff !important;
+  text-decoration: none !important;
+}
+
+/* Hover states - VERY SPECIFIC */
+button.btn.btn-primary:hover,
+.btn.btn-primary:hover,
+button.btn-primary:hover,
+.button.-dark-1:hover,
+button.button.-dark-1:hover,
+.mainSearch__submit:hover,
+button.mainSearch__submit:hover,
+.search-btn:hover,
+button.search-btn:hover,
+input[type="submit"].btn-primary:hover,
+a.btn.btn-primary:hover,
+a.button.-dark-1:hover {
+  background-color: #3d0875 !important;
+  border-color: #3d0875 !important;
+  color: #ffffff !important;
+  text-decoration: none !important;
+}
+
+/* Button text - force white on all children */
+.btn-primary *,
+.button.-dark-1 *,
+.mainSearch__submit *,
+.search-btn * {
+  color: #ffffff !important;
+}
+
+/* Menu active states - text and icons should be purple */
+.menu__nav li.current a,
+.menu__nav li.current .icon,
+.header .menu__nav li.current a {
+  color: #530aa6 !important;
+}
+
+/* Flight and Car type buttons hover - change blue hover to purple */
+.banner-form .radio-button:hover .radio-button__content,
+.mainSearch .radio-button:hover .radio-button__content,
+.js-radio label:hover,
+.radio-button__content:hover {
+  color: #530aa6 !important;
+}
+
+/* Search tabs active - purple background with white text */
+.banner-form .nav-tabs .nav-link.active,
+.mainSearch .nav-tabs .nav-link.active,
+.nav-tabs .nav-link.active,
+.complete-search-engine .nav-tabs .nav-link.active {
+  background-color: #530aa6 !important;
+  border-color: #530aa6 !important;
+  color: #ffffff !important;
+}
+
+/* Form focus states */
+input:focus,
+select:focus,
+textarea:focus,
+.form-control:focus {
+  border-color: #530aa6 !important;
+  box-shadow: 0 0 0 0.2rem rgba(83, 10, 166, 0.25) !important;
+}
+
+/* Links hover */
+a:hover {
+  color: #530aa6 !important;
+}
+
+/* Pagination active */
+.pagination .page-link.active,
+.pagination .page-item.active .page-link {
+  background-color: #530aa6 !important;
+  border-color: #530aa6 !important;
+  color: #ffffff !important;
+}
+
+/* Text elements using blue-1 variable */
+.text-blue-1 {
+  color: #530aa6 !important;
+}
+
+.bg-blue-1 {
+  background-color: #530aa6 !important;
+}
+
+.border-blue-1 {
+  border-color: #530aa6 !important;
+}
+
+/* Force override any inline styles with blue */
+[style*="background-color: #3554d1"],
+[style*="background: #3554d1"] {
+  background-color: #530aa6 !important;
+}
+
+[style*="color: #3554d1"] {
+  color: #530aa6 !important;
+}
+
+[style*="border-color: #3554d1"] {
+  border-color: #530aa6 !important;
+} 

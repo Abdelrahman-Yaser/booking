@@ -1,0 +1,1 @@
+'use client'; import React from 'react'; const Notification = () => { return (<div className='card'><div className='card-header'><h5>Notification</h5></div><div className='card-body'><p>Notification component content will be implemented here.</p></div></div>) }; export default Notification

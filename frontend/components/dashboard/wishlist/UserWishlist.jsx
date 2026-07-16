@@ -1,0 +1,1 @@
+'use client'; import React from 'react'; const UserWishlist = () => { return (<div className='card'><div className='card-header'><h5>UserWishlist</h5></div><div className='card-body'><p>UserWishlist component content will be implemented here.</p></div></div>) }; export default UserWishlist
