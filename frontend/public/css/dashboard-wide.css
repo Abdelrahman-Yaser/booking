@@ -1,0 +1,137 @@
+/* Dashboard Wide Layout Styles */
+
+/* Main container adjustments */
+.main-wrapper {
+  width: 100% !important;
+  max-width: 100% !important;
+}
+
+.content.content-two {
+  width: 100% !important;
+  max-width: 100% !important;
+  padding: 0 !important;
+}
+
+/* Container fluid adjustments */
+.container-fluid {
+  max-width: 100% !important;
+  width: 100% !important;
+  margin: 0 !important;
+  padding-left: 2rem !important;
+  padding-right: 2rem !important;
+}
+
+/* Row adjustments */
+.row {
+  margin-left: 0 !important;
+  margin-right: 0 !important;
+  width: 100% !important;
+}
+
+/* Column adjustments */
+.col-xl-10, .col-lg-9 {
+  padding-left: 1rem !important;
+  padding-right: 1rem !important;
+  flex: 1 !important;
+  max-width: calc(100% - 250px) !important;
+}
+
+.col-xl-2, .col-lg-3 {
+  padding-left: 0.5rem !important;
+  padding-right: 0.5rem !important;
+  flex: 0 0 250px !important;
+  max-width: 250px !important;
+}
+
+/* Dashboard content adjustments */
+.dashboard-content {
+  width: 100% !important;
+  max-width: 100% !important;
+  padding: 20px !important;
+}
+
+.dashboard-page-content {
+  width: 100% !important;
+  max-width: 100% !important;
+}
+
+.dashboard-page-content .row {
+  margin-left: 0 !important;
+  margin-right: 0 !important;
+  width: 100% !important;
+}
+
+.dashboard-page-content .col-xl-4, 
+.dashboard-page-content .col-xl-7, 
+.dashboard-page-content .col-xl-5, 
+.dashboard-page-content .col-12 {
+  padding-left: 0.75rem !important;
+  padding-right: 0.75rem !important;
+}
+
+/* Card and container adjustments */
+.card, .dashboard-card {
+  width: 100% !important;
+  max-width: 100% !important;
+}
+
+/* Stats cards row */
+.stats-row .col-md-4 {
+  flex: 1 !important;
+  max-width: none !important;
+}
+
+/* Chart containers */
+.chart-container, .apex-charts {
+  width: 100% !important;
+  max-width: 100% !important;
+}
+
+/* Responsive adjustments */
+@media (min-width: 1400px) {
+  .container-fluid {
+    padding-left: 3rem !important;
+    padding-right: 3rem !important;
+  }
+  
+  .col-xl-10 {
+    max-width: calc(100% - 280px) !important;
+  }
+  
+  .col-xl-2 {
+    flex: 0 0 280px !important;
+    max-width: 280px !important;
+  }
+}
+
+@media (max-width: 991.98px) {
+  .col-lg-9, .col-lg-3 {
+    max-width: 100% !important;
+    flex: 0 0 100% !important;
+  }
+}
+
+/* Remove any bootstrap container max-width limitations */
+@media (min-width: 1200px) {
+  .container-fluid {
+    max-width: 100% !important;
+  }
+}
+
+@media (min-width: 992px) {
+  .container-fluid {
+    max-width: 100% !important;
+  }
+}
+
+@media (min-width: 768px) {
+  .container-fluid {
+    max-width: 100% !important;
+  }
+}
+
+@media (min-width: 576px) {
+  .container-fluid {
+    max-width: 100% !important;
+  }
+} 

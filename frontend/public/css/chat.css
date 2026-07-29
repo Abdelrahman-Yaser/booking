@@ -1,0 +1,1188 @@
+/* Chat Specific CSS Styles */
+
+.header-navigation {
+    padding: 15px 0;
+    border-bottom: 1px solid #E4EBF1;
+}
+
+.customer-chat {
+    background: #fff;
+    border-radius: 10px;
+    box-shadow: 0px 4px 20px rgba(19, 16, 34, 0.05);
+    overflow: hidden;
+}
+
+.chat-window {
+    min-height: 600px;
+}
+
+.chat-cont-left {
+    background: #fff;
+    border-right: 1px solid #E4EBF1;
+}
+
+.chat-cont-left .card {
+    border: 1px solid #E4EBF1;
+    box-shadow: none;
+    border-radius: 10px;
+}
+
+.chat-header {
+    background: #fff;
+    border-bottom: 1px solid #E4EBF1;
+    padding: 20px;
+}
+
+.chat-header h6 {
+    margin-bottom: 15px;
+    font-size: 18px;
+    font-weight: 600;
+    color: #111827;
+}
+
+.chat-users-list {
+    max-height: 500px;
+    overflow-y: auto;
+    padding: 0;
+}
+
+.chat-member {
+    display: flex;
+    align-items: center;
+    padding: 15px 20px;
+    border-bottom: 1px solid #F3F4F6;
+    text-decoration: none;
+    color: inherit;
+    transition: all 0.3s ease;
+}
+
+.chat-member:hover {
+    background: #F8FAFB;
+    text-decoration: none;
+    color: inherit;
+}
+
+.chat-member.active {
+    background: #EFF6FF;
+    border-left: 3px solid #530aa6;
+}
+
+.chat-member .avatar {
+    margin-right: 12px;
+    flex-shrink: 0;
+}
+
+.chat-member .avatar img {
+    border-radius: 10px;
+    width: 50px;
+    height: 50px;
+    object-fit: cover;
+}
+
+.chat-member .avatar.online::before {
+    content: "";
+    position: absolute;
+    bottom: 2px;
+    right: 2px;
+    width: 12px;
+    height: 12px;
+    background: #10B981;
+    border: 2px solid #fff;
+    border-radius: 50%;
+}
+
+.chat-member .flex-grow-1 {
+    min-width: 0;
+}
+
+.chat-member h6 {
+    margin-bottom: 4px;
+    font-size: 16px;
+    font-weight: 500;
+    color: #111827;
+}
+
+.chat-member p {
+    margin-bottom: 0;
+    font-size: 14px;
+    color: #6B7280;
+    display: flex;
+    align-items: center;
+}
+
+.chat-member p i {
+    margin-right: 6px;
+    font-size: 12px;
+}
+
+.chat-member .text-end p {
+    font-size: 12px;
+    color: #9CA3AF;
+}
+
+.chat-member .msg-count {
+    background: #CF3425;
+    color: #fff;
+    width: 20px;
+    height: 20px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 12px;
+    font-weight: 600;
+}
+
+.chat-cont-right {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    background: #fff;
+}
+
+.msg_head {
+    padding: 15px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    border: 0;
+    border-radius: 10px;
+    background-color: #F8FAFB;
+    border-bottom: 1px solid #E4EBF1;
+}
+
+.msg_head .user-info {
+    display: flex;
+    align-items: center;
+}
+
+.msg_head .user-info .avatar {
+    margin-right: 12px;
+}
+
+.msg_head .user-info .avatar img {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    object-fit: cover;
+}
+
+.msg_head .user-info h6 {
+    margin-bottom: 2px;
+    font-size: 16px;
+    font-weight: 600;
+    color: #111827;
+}
+
+.msg_head .user-info p {
+    margin-bottom: 0;
+    font-size: 12px;
+    color: #10B981;
+    font-weight: 500;
+}
+
+.msg_card_body {
+    flex: 1;
+    padding: 20px;
+    overflow-y: auto;
+    max-height: 400px;
+}
+
+.msg_card_body .media {
+    display: flex;
+    margin-bottom: 20px;
+}
+
+.msg_card_body .media.received {
+    justify-content: flex-start;
+}
+
+.msg_card_body .media.sent {
+    justify-content: flex-end;
+}
+
+.msg_card_body .media .avatar {
+    margin-right: 10px;
+    flex-shrink: 0;
+}
+
+.msg_card_body .media .avatar img {
+    width: 35px;
+    height: 35px;
+    border-radius: 50%;
+    object-fit: cover;
+}
+
+.msg_card_body .media.sent .avatar {
+    order: 2;
+    margin-right: 0;
+    margin-left: 10px;
+}
+
+.msg_card_body .media-body {
+    flex: 1;
+    max-width: 70%;
+}
+
+.msg_card_body .media.sent .media-body {
+    order: 1;
+    text-align: right;
+}
+
+.received-message, .sent-message {
+    padding: 12px 16px;
+    margin-bottom: 5px;
+    word-wrap: break-word;
+    position: relative;
+}
+
+.received-message {
+    background-color: #F8FAFB;
+    color: #111827;
+    border: 1px solid #E4EBF1;
+    border-radius: 18px 18px 18px 4px;
+    display: inline-block;
+}
+
+.sent-message {
+    background: #F8FAFB;
+    color: #111827;
+    border: 1px solid #E4EBF1;
+    border-radius: 18px 18px 4px 18px;
+    display: inline-block;
+    margin-left: auto;
+}
+
+.message-time {
+    font-size: 11px;
+    color: #9CA3AF;
+    margin-top: 5px;
+}
+
+.card-footer {
+    padding: 15px;
+    border-top: 1px solid #E4EBF1;
+    background: #fff;
+}
+
+.chat-footer-content {
+    position: relative;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.type_msg {
+    flex: 1;
+    border: 1px solid #E4EBF1;
+    border-radius: 25px;
+    padding: 12px 60px 12px 20px;
+    font-size: 14px;
+    resize: none;
+    outline: none;
+    background: #fff;
+    height: 45px;
+}
+
+.type_msg:focus {
+    border-color: #CF3425;
+    box-shadow: 0 0 0 3px rgba(207, 52, 37, 0.1);
+}
+
+.send-action {
+    position: absolute;
+    right: 5px;
+    top: 50%;
+    transform: translateY(-50%);
+    display: flex;
+    align-items: center;
+    gap: 5px;
+}
+
+.send-action-btn {
+    width: 30px;
+    height: 30px;
+    border-radius: 50%;
+    border: none;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: #F3F4F6;
+    color: #6B7280;
+    transition: all 0.3s ease;
+    font-size: 14px;
+    text-decoration: none;
+}
+
+.send-action-btn:hover {
+    background: #530aa6;
+    color: #fff;
+    text-decoration: none;
+}
+
+/* إظهار النقاط الثلاث في الهيدر */
+.msg_head .send-action .ti-dots-vertical,
+.msg_head .send-action .fa-ellipsis-vertical,
+.msg_head .send-action i[class*="dots"],
+.msg_head .send-action .ti {
+    color: #6c757d !important;
+    font-size: 18px !important;
+    visibility: visible !important;
+    opacity: 1 !important;
+    display: block !important;
+}
+
+/* التأكد من ظهور أيقونة النقاط */
+.ti-dots-vertical::before {
+    content: "⋮" !important;
+    font-size: 18px;
+    font-weight: bold;
+}
+
+.msg_head .send-action-btn {
+    background: transparent !important;
+    border: none !important;
+    color: #6c757d !important;
+    width: 35px;
+    height: 35px;
+    border-radius: 50%;
+    display: flex !important;
+    align-items: center;
+    justify-content: center;
+}
+
+.msg_head .send-action-btn:hover {
+    background: #f8f9fa !important;
+    color: #530aa6 !important;
+}
+
+/* إضافة النقاط يدوياً إذا لم تظهر الأيقونة */
+.msg_head .send-action .btn::after {
+    content: "⋮";
+    font-size: 18px;
+    font-weight: bold;
+    color: #6c757d;
+    line-height: 1;
+}
+
+.msg_head .send-action .btn:hover::after {
+    color: #530aa6;
+}
+
+/* Emoji Picker Styling */
+.emoj-group-list-foot {
+    background: white;
+    border: 1px solid #e9ecef;
+    border-radius: 8px;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+    max-height: 200px;
+    overflow-y: auto;
+}
+
+.add-emoj a {
+    display: block;
+    padding: 5px;
+    border-radius: 4px;
+    transition: background-color 0.2s;
+}
+
+.add-emoj a:hover {
+    background-color: #f8f9fa;
+}
+
+.btn_send {
+    width: 40px;
+    height: 40px;
+    border-radius: 10px;
+    background: #530aa6;
+    color: #fff;
+    border: none;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 16px;
+    transition: all 0.3s ease;
+}
+
+.btn_send:hover {
+    background: #6D28D9;
+    transform: scale(1.05);
+}
+
+.input-icon {
+    position: relative;
+}
+
+.input-icon .input-icon-addon {
+    position: absolute;
+    left: 15px;
+    top: 50%;
+    transform: translateY(-50%);
+    color: #6B7280;
+    z-index: 1;
+}
+
+.input-icon .form-control {
+    padding-left: 45px;
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+    .chat-window {
+        flex-direction: column;
+    }
+    
+    .chat-cont-left {
+        border-right: none;
+        border-bottom: 1px solid #E4EBF1;
+    }
+    
+    .msg_card_body {
+        max-height: 300px;
+    }
+    
+    .chat-member h6 {
+        font-size: 14px;
+    }
+    
+    .chat-member p {
+        font-size: 12px;
+    }
+}
+
+/* Chat Search Header Styling */
+.chat-search-header {
+    background-color: #f8f9fa;
+    border-radius: 0;
+    border-top: 1px solid #e9ecef;
+}
+
+.chat-search-header .input-group-text {
+    background-color: white;
+    border: 1px solid #dee2e6;
+    border-right: none;
+}
+
+.chat-search-header .form-control {
+    border: 1px solid #dee2e6;
+    border-left: none;
+    box-shadow: none;
+}
+
+.chat-search-header .form-control:focus {
+    border-color: #530aa6;
+    box-shadow: 0 0 0 0.2rem rgba(83, 10, 166, 0.15);
+}
+
+/* Dropdown Menu Styling */
+.dropdown-menu {
+    border: 1px solid #e9ecef;
+    border-radius: 8px;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+    min-width: 180px;
+    z-index: 1050;
+}
+
+.dropdown-item {
+    padding: 8px 12px;
+    font-size: 14px;
+    color: #6c757d;
+    border-radius: 4px;
+    display: flex;
+    align-items: center;
+}
+
+.dropdown-item:hover,
+.dropdown-item:focus {
+    background-color: #f8f9fa;
+    color: #530aa6;
+}
+
+.dropdown-item i {
+    font-size: 16px;
+    width: 20px;
+    text-align: center;
+}
+
+/* Plus Button for Attachments */
+.dropdown .btn-light {
+    background-color: #f8f9fa;
+    border: 1px solid #e9ecef;
+    color: #6c757d;
+    width: 42px;
+    height: 42px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+}
+
+.dropdown .btn-light:hover {
+    background-color: #e9ecef;
+    color: #530aa6;
+}
+
+/* Chat Actions Dots */
+.chat-actions {
+    position: relative;
+}
+
+.chat-actions .dropdown-menu {
+    position: absolute;
+    top: 100%;
+    left: 0;
+    z-index: 1050;
+    transform: translateX(-50%);
+}
+
+/* Better Input Field */
+.type_msg {
+    border-radius: 25px;
+    padding: 11px 85px 11px 18px;
+    border: 1px solid #e9ecef;
+    font-size: 14px;
+    height: 42px;
+    width: 100%;
+    background-color: #fff;
+    flex: 1;
+    min-width: 0;
+}
+
+.type_msg:focus {
+    border-color: #530aa6;
+    box-shadow: 0 0 0 0.2rem rgba(83, 10, 166, 0.15);
+    outline: none;
+}
+
+/* Chat Footer Layout */
+.chat-footer-content {
+    position: relative;
+    width: 100%;
+}
+
+.chat-footer-content .d-flex {
+    width: 100%;
+    align-items: center;
+    gap: 6px;
+}
+
+.chat-footer-content .flex-grow-1 {
+    flex: 1;
+    min-width: 0;
+}
+
+/* Send Button Enhancement */
+.btn_send {
+    background-color: #530aa6;
+    border-color: #530aa6;
+    border-radius: 8px;
+    width: 42px;
+    height: 42px;
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.3s ease;
+}
+
+.btn_send:hover {
+    background-color: #3f0880;
+    border-color: #3f0880;
+    transform: scale(1.05);
+}
+
+/* Chat component styling */
+.chat-container {
+    height: 100vh;
+    display: flex;
+    flex-direction: column;
+}
+
+.chat-header {
+    background: #fff;
+    border-bottom: 1px solid #e5e7eb;
+    padding: 1rem;
+}
+
+.chat-user-name {
+    font-weight: 600;
+    color: #111827;
+    margin: 0;
+}
+
+.chat-status {
+    font-size: 0.875rem;
+    color: #6b7280;
+    margin: 0;
+}
+
+.chat-messages {
+    flex: 1;
+    overflow-y: auto;
+    padding: 1rem;
+    background: #f9fafb;
+}
+
+.chat-message {
+    margin-bottom: 1rem;
+}
+
+.message-sent {
+    display: flex;
+    justify-content: flex-end;
+}
+
+.message-received {
+    display: flex;
+    justify-content: flex-start;
+}
+
+.message-content {
+    max-width: 70%;
+    padding: 0.75rem 1rem;
+    border-radius: 1rem;
+    position: relative;
+}
+
+.message-sent .message-content {
+    background: #530aa6;
+    color: white;
+}
+
+.message-received .message-content {
+    background: white;
+    color: #111827;
+    border: 1px solid #e5e7eb;
+}
+
+.chat-footer {
+    background: #fff;
+    border-top: 1px solid #e5e7eb;
+    padding: 1rem;
+}
+
+.input-group {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.form-control {
+    flex: 1;
+    border: 1px solid #d1d5db;
+    border-radius: 20px;
+    padding: 10px 15px;
+    font-size: 14px;
+    height: 42px;
+    outline: none;
+}
+
+.form-control:focus {
+    border-color: #530aa6;
+    box-shadow: 0 0 0 2px rgba(83, 10, 166, 0.1);
+}
+
+.btn {
+    height: 42px;
+    width: 42px;
+    border-radius: 50%;
+    border: none;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    position: relative;
+}
+
+.btn:hover {
+    background-color: #530aa6 !important;
+}
+
+.btn:hover i,
+.btn:hover .ti {
+    color: white !important;
+}
+
+.btn:hover::before {
+    color: white !important;
+}
+
+.btn-attachment {
+    background-color: #f3f4f6;
+    color: #6b7280;
+}
+
+.btn-emoji {
+    background-color: #f3f4f6;
+    color: #6b7280;
+}
+
+.btn-send {
+    background-color: #530aa6;
+    color: white;
+}
+
+.btn-send:hover {
+    background-color: #6d28d9 !important;
+}
+
+/* Dropdown menu styling */
+.dropdown-menu {
+    border: 1px solid #e5e7eb;
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+    border-radius: 8px;
+    min-width: 180px;
+}
+
+.dropdown-item {
+    padding: 8px 16px;
+    font-size: 14px;
+    color: #374151;
+    transition: all 0.2s ease;
+}
+
+.dropdown-item:hover {
+    background-color: #530aa6 !important;
+    color: white !important;
+}
+
+.dropdown-item i {
+    width: 16px;
+    margin-right: 8px;
+}
+
+/* Header dots styling - Strong CSS with important */
+.ti.ti-dots-vertical,
+.fa-solid.fa-ellipsis-vertical {
+    font-size: 18px !important;
+    color: #6b7280 !important;
+    font-weight: bold !important;
+    display: inline-block !important;
+    visibility: visible !important;
+    opacity: 1 !important;
+}
+
+.ti.ti-dots-vertical::before,
+.fa-solid.fa-ellipsis-vertical::before {
+    content: "⋮" !important;
+    font-size: 18px !important;
+    color: #6b7280 !important;
+    font-weight: bold !important;
+}
+
+.btn:hover .ti.ti-dots-vertical,
+.btn:hover .fa-solid.fa-ellipsis-vertical {
+    color: white !important;
+}
+
+.btn:hover .ti.ti-dots-vertical::before,
+.btn:hover .fa-solid.fa-ellipsis-vertical::before {
+    color: white !important;
+}
+
+/* Search header styling */
+.input-group-text {
+    background-color: #f9fafb;
+    border: 1px solid #d1d5db;
+    border-right: none;
+    border-radius: 20px 0 0 20px;
+    padding: 0 12px;
+    display: flex;
+    align-items: center;
+}
+
+.input-group .form-control {
+    border-left: none;
+    border-radius: 0 20px 20px 0;
+}
+
+/* Emoji picker styling */
+/* النافذة القديمة محذوفة - نستخدم النافذة الجديدة في UserChat.jsx */
+
+/* Message dropdown styling */
+.message-dropdown .dropdown-toggle {
+    background: none;
+    border: none;
+    color: #6b7280;
+    font-size: 16px;
+    padding: 4px;
+    border-radius: 4px;
+    transition: all 0.2s ease;
+}
+
+.message-dropdown .dropdown-toggle:hover {
+    background-color: #530aa6 !important;
+    color: white !important;
+}
+
+.message-dropdown .dropdown-toggle::after {
+    display: none;
+}
+
+/* Remove any red colors and replace with purple */
+.text-danger,
+.btn-danger,
+.border-danger,
+.bg-danger {
+    color: #530aa6 !important;
+    background-color: #530aa6 !important;
+    border-color: #530aa6 !important;
+}
+
+.text-danger:hover,
+.btn-danger:hover {
+    color: white !important;
+    background-color: #6d28d9 !important;
+    border-color: #6d28d9 !important;
+}
+
+/* Icon hover effects */
+.btn i,
+.btn .ti,
+.btn .fa,
+.btn .fas,
+.btn .far,
+.send-action-btn i,
+.send-action-btn .fa,
+.send-action-btn .far {
+  transition: color 0.2s ease;
+  color: inherit;
+}
+
+.btn:hover i,
+.btn:hover .ti,
+.btn:hover .fa,
+.btn:hover .fas,
+.btn:hover .far {
+  color: white !important;
+}
+
+/* خاص بأزرار الإيموجي والمايك */
+.send-action-btn {
+  background: none !important;
+  border: none !important;
+  padding: 4px !important;
+  border-radius: 50% !important;
+  width: 32px !important;
+  height: 32px !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  color: #6b7280 !important;
+  transition: all 0.2s ease !important;
+  cursor: pointer !important;
+}
+
+.send-action-btn:hover {
+  background-color: #530aa6 !important;
+  color: white !important;
+  transform: scale(1.05) !important;
+}
+
+.send-action-btn:hover i,
+.send-action-btn:hover .fa,
+.send-action-btn:hover .far,
+.send-action-btn:hover .isax {
+  color: white !important;
+}
+
+/* إصلاح هوفر زر المرفقات */
+.btn-attachment {
+  transition: all 0.2s ease !important;
+  cursor: pointer !important;
+}
+
+.btn-attachment:hover {
+  background-color: #530aa6 !important;
+  color: white !important;
+  transform: scale(1.05) !important;
+}
+
+.btn-attachment:hover i,
+.btn-attachment:hover .isax {
+  color: white !important;
+}
+
+/* إصلاح هوفر زر الإرسال */
+.btn_send {
+  transition: all 0.2s ease !important;
+  cursor: pointer !important;
+}
+
+.btn_send:hover {
+  background-color: #6d28d9 !important;
+  border-color: #6d28d9 !important;
+  transform: scale(1.05) !important;
+}
+
+.btn_send:hover i,
+.btn_send:hover .fa {
+  color: white !important;
+}
+
+/* Chat attachments dropdown */
+.chat-attachments .dropdown-menu {
+    min-width: 150px;
+}
+
+.chat-attachments .dropdown-item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+/* Message time styling */
+.message-time {
+    font-size: 0.75rem;
+    color: #9ca3af;
+    margin-top: 4px;
+}
+
+/* Online status */
+.online-status {
+    width: 8px;
+    height: 8px;
+    background-color: #10b981;
+    border-radius: 50%;
+    display: inline-block;
+    margin-left: 4px;
+}
+
+/* Scrollbar styling for chat messages */
+.chat-messages::-webkit-scrollbar {
+    width: 6px;
+}
+
+.chat-messages::-webkit-scrollbar-track {
+    background: #f1f3f4;
+}
+
+.chat-messages::-webkit-scrollbar-thumb {
+    background-color: #d1d5db;
+    border-radius: 3px;
+}
+
+.chat-messages::-webkit-scrollbar-thumb:hover {
+    background-color: #9ca3af;
+}
+
+/* Search functionality */
+.search-active .chat-messages {
+    filter: none;
+}
+
+.search-highlight {
+    background-color: #fef3c7;
+    padding: 2px 4px;
+    border-radius: 2px;
+}
+
+/* Responsive design */
+@media (max-width: 768px) {
+    .message-content {
+        max-width: 85%;
+    }
+    
+    .chat-footer {
+        padding: 0.75rem;
+    }
+    
+    .btn {
+        height: 38px;
+        width: 38px;
+    }
+    
+    .form-control {
+        height: 38px;
+        font-size: 13px;
+    }
+}
+
+/* Fix for font awesome icons */
+.fa, .fas, .far, .fab {
+    font-family: "Font Awesome 6 Free", "Font Awesome 6 Pro", "Font Awesome 5 Free", "Font Awesome 5 Pro" !important;
+}
+
+/* Additional purple theme consistency */
+.badge-primary,
+.bg-primary {
+    background-color: #530aa6 !important;
+}
+
+.text-primary {
+    color: #530aa6 !important;
+}
+
+.border-primary {
+    border-color: #530aa6 !important;
+}
+
+/* Button focus states */
+.btn:focus,
+.btn:focus-visible {
+    outline: 2px solid #530aa6;
+    outline-offset: 2px;
+}
+
+/* Input focus states */
+.form-control:focus {
+  border-color: #530aa6 !important;
+  box-shadow: 0 0 0 0.2rem rgba(83, 10, 166, 0.25) !important;
+}
+
+/* إصلاح شامل لأزرار الإيموجي */
+.emoji-item {
+  background: transparent !important;
+  border: none !important;
+  cursor: pointer !important;
+  transition: all 0.2s ease !important;
+  font-size: 20px !important;
+  width: 32px !important;
+  height: 32px !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  border-radius: 4px !important;
+  user-select: none !important;
+}
+
+.emoji-item:hover {
+  background-color: #f0f0f0 !important;
+  transform: scale(1.1) !important;
+}
+
+.emoji-item:active {
+  transform: scale(0.95) !important;
+  background-color: #e0e0e0 !important;
+}
+
+.emoji-item:focus {
+  outline: none !important;
+  box-shadow: 0 0 0 2px rgba(83, 10, 166, 0.3) !important;
+}
+
+/* النافذة القديمة محذوفة - نستخدم النافذة الجديدة في UserChat.jsx */
+
+/* إصلاح أزرار الإرسال والإيموجي والمايك */
+.send-action button {
+  cursor: pointer !important;
+}
+
+.send-action-btn:hover,
+.btn-attachment:hover {
+  background-color: #530aa6 !important;
+  color: white !important;
+}
+
+.send-action-btn:hover i,
+.send-action-btn:hover .fa,
+.send-action-btn:hover .far,
+.send-action-btn:hover .isax,
+.btn-attachment:hover i,
+.btn-attachment:hover .isax {
+  color: white !important;
+}
+
+/* رسوم متحركة لنافذة الإيموجي */
+@keyframes fadeInUp {
+  0% {
+    opacity: 0;
+    transform: translateY(20px) scale(0.95);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+@keyframes fadeOutDown {
+  0% {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+  100% {
+    opacity: 0;
+    transform: translateY(20px) scale(0.95);
+  }
+}
+
+/* تأثيرات الإيموجي المحسنة */
+.emoji-item {
+  position: relative;
+  overflow: hidden;
+}
+
+.emoji-item::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: linear-gradient(45deg, rgba(83, 10, 166, 0.1), rgba(109, 40, 217, 0.1));
+  opacity: 0;
+  transition: opacity 0.15s ease;
+  border-radius: 8px;
+}
+
+.emoji-item:hover::before {
+  opacity: 1;
+}
+
+/* شريط التمرير للنافذة القديمة محذوف */
+
+/* تأثير التموج للأزرار */
+.send-action-btn {
+  position: relative;
+  overflow: hidden;
+}
+
+.send-action-btn::before {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 0;
+  height: 0;
+  background: rgba(83, 10, 166, 0.3);
+  border-radius: 50%;
+  transform: translate(-50%, -50%);
+  transition: width 0.3s ease, height 0.3s ease;
+}
+
+.send-action-btn:active::before {
+  width: 40px;
+  height: 40px;
+}
+
+/* تحسين مظهر زر الإرسال */
+.btn_send {
+  position: relative;
+  overflow: hidden;
+  background: linear-gradient(135deg, #530aa6, #6d28d9) !important;
+  border: none !important;
+  box-shadow: 0 4px 15px rgba(83, 10, 166, 0.3);
+  transition: all 0.3s ease;
+}
+
+.btn_send:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(83, 10, 166, 0.4);
+}
+
+.btn_send:active {
+  transform: translateY(0);
+}
+
+/* تحسين مدخل النص */
+.chat-input {
+  transition: all 0.3s ease;
+}
+
+.chat-input:focus {
+  border-color: #530aa6 !important;
+  box-shadow: 0 0 0 0.2rem rgba(83, 10, 166, 0.25) !important;
+}
+
+/* تأثيرات النافذة القديمة محذوفة */

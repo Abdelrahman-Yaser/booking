@@ -1,0 +1,82 @@
+{
+  "IST": {
+    "iata": "IST",
+    "name": "Istanbul Airport",
+    "city": "Istanbul",
+    "country": "Turkey",
+    "timezone": "Europe/Istanbul",
+    "lastUpdated": "2024-03-14T00:00:00.000Z"
+  },
+  "DXB": {
+    "iata": "DXB",
+    "name": "Dubai International Airport",
+    "city": "Dubai",
+    "country": "United Arab Emirates",
+    "timezone": "Asia/Dubai",
+    "lastUpdated": "2024-03-14T00:00:00.000Z"
+  },
+  "JFK": {
+    "iata": "JFK",
+    "name": "John F. Kennedy International Airport",
+    "city": "New York",
+    "country": "United States",
+    "timezone": "America/New_York",
+    "lastUpdated": "2024-03-14T00:00:00.000Z"
+  },
+  "LHR": {
+    "iata": "LHR",
+    "name": "London Heathrow Airport",
+    "city": "London",
+    "country": "United Kingdom",
+    "timezone": "Europe/London",
+    "lastUpdated": "2024-03-14T00:00:00.000Z"
+  },
+  "CDG": {
+    "iata": "CDG",
+    "name": "Charles de Gaulle Airport",
+    "city": "Paris",
+    "country": "France",
+    "timezone": "Europe/Paris",
+    "lastUpdated": "2024-03-14T00:00:00.000Z"
+  },
+  "HKG": {
+    "iata": "HKG",
+    "name": "Hong Kong International Airport",
+    "city": "Hong Kong",
+    "country": "China",
+    "timezone": "Asia/Hong_Kong",
+    "lastUpdated": "2024-03-14T00:00:00.000Z"
+  },
+  "SIN": {
+    "iata": "SIN",
+    "name": "Singapore Changi Airport",
+    "city": "Singapore",
+    "country": "Singapore",
+    "timezone": "Asia/Singapore",
+    "lastUpdated": "2024-03-14T00:00:00.000Z"
+  },
+  "CAI": {
+    "iata": "CAI",
+    "name": "Cairo International Airport",
+    "city": "Cairo",
+    "country": "Egypt",
+    "timezone": "Africa/Cairo",
+    "lastUpdated": "2024-03-14T00:00:00.000Z"
+  },
+  "RUH": {
+    "iata": "RUH",
+    "name": "King Khalid International Airport",
+    "city": "Riyadh",
+    "country": "Saudi Arabia",
+    "timezone": "Asia/Riyadh",
+    "lastUpdated": "2024-03-14T00:00:00.000Z"
+  },
+  "JED": {
+    "iata": "JED",
+    "name": "King Abdulaziz International Airport",
+    "city": "Jeddah",
+    "country": "Saudi Arabia",
+    "timezone": "Asia/Riyadh",
+    "lastUpdated": "2024-03-14T00:00:00.000Z"
+  }
+} 
