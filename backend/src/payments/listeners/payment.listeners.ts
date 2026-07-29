@@ -1,25 +1,27 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { OnEvent } from '@nestjs/event-emitter';
-import { PrismaService } from 'src/prisma/prisma.service';
+import { InjectRepository } from '@nestjs/typeorm';
+import { Repository } from 'typeorm';
+import { PaymentEntity } from '../entities/payment.entity';
 import { PaymentsService } from '../payments.service';
 
 // ─── event payload types ──────────────────────────────────────────────────────
-interface PaymentSucceededPayload {
+export interface PaymentSucceededPayload {
   stripePaymentId: string;
-  bookingId:       string;
-  amount:          number;
-  currency:        string;
+  bookingId: string;
+  amount: number;
+  currency: string;
 }
 
-interface PaymentFailedPayload {
+export interface PaymentFailedPayload {
   stripePaymentId: string;
-  bookingId:       string;
-  reason:          string;
+  bookingId: string;
+  reason: string;
 }
 
-interface PaymentRefundedPayload {
-  chargeId:       string;
-  amount:         number;
+export interface PaymentRefundedPayload {
+  chargeId: string;
+  amount: number;
   refundedAmount: number;
 }
 
@@ -28,37 +30,39 @@ export class PaymentListeners {
   private readonly logger = new Logger(PaymentListeners.name);
 
   constructor(
-    private readonly prisma: PrismaService,
-    // ✅ only inject what actually exists in the module
+    @InjectRepository(PaymentEntity)
+    private readonly paymentRepository: Repository<PaymentEntity>,
     private readonly paymentsService: PaymentsService,
   ) {}
 
   // ─── PAYMENT SUCCEEDED ───────────────────────────────────────────────────────
   @OnEvent('payment.succeeded', { async: true })
-  async handlePaymentSucceeded(payload: PaymentSucceededPayload) {
-    this.logger.log(`💰 Handling payment.succeeded: ${payload.stripePaymentId}`);
+  async handlePaymentSucceeded(
+    payload: PaymentSucceededPayload,
+  ): Promise<void> {
+    this.logger.log(
+      `💰 Handling payment.succeeded: ${payload.stripePaymentId}`,
+    );
 
     try {
-      // delegates to PaymentsService which does the DB transaction
+      // Delegates to PaymentsService which handles the DB transaction
       await this.paymentsService.markAsPaid(payload.stripePaymentId);
 
-      // load booking for notification
-      const payment = await this.prisma.payment.findFirst({
+      // Load payment with booking & relations in TypeORM syntax
+      const payment = await this.paymentRepository.findOne({
         where: { stripePaymentId: payload.stripePaymentId },
-        include: {
+        relations: {
           booking: {
-            include: {
-              customer: true,
-              room:     true,
-              tenant:   true,
-            },
+            customer: true,
+            room: true,
+            tenant: true,
           },
         },
       });
 
       if (!payment) return;
 
-      // TODO: inject NotificationsService here once it's created
+      // TODO: inject NotificationsService here once created
       // await this.notifications.sendReceiptEmail({
       //   customerEmail: payment.booking.customer.email,
       //   bookingId:     payment.booking.id,
@@ -69,7 +73,7 @@ export class PaymentListeners {
       this.logger.log(
         `✅ Booking #${payment.bookingId} confirmed after payment`,
       );
-    } catch (err) {
+    } catch (err: unknown) {
       this.logger.error(
         `❌ Failed to handle payment.succeeded for ${payload.stripePaymentId}`,
         err,
@@ -80,7 +84,7 @@ export class PaymentListeners {
 
   // ─── PAYMENT FAILED ──────────────────────────────────────────────────────────
   @OnEvent('payment.failed', { async: true })
-  async handlePaymentFailed(payload: PaymentFailedPayload) {
+  async handlePaymentFailed(payload: PaymentFailedPayload): Promise<void> {
     this.logger.warn(
       `❌ Handling payment.failed: ${payload.stripePaymentId} — ${payload.reason}`,
     );
@@ -90,17 +94,16 @@ export class PaymentListeners {
 
       // TODO: notify customer that payment failed
       // await this.notifications.sendPaymentFailedEmail({ ... });
-    } catch (err) {
+    } catch (err: unknown) {
       this.logger.error(
         `Failed to handle payment.failed for ${payload.stripePaymentId}`,
         err,
       );
     }
   }
-
   // ─── PAYMENT REFUNDED ────────────────────────────────────────────────────────
   @OnEvent('payment.refunded', { async: true })
-  async handlePaymentRefunded(payload: PaymentRefundedPayload) {
+  async handlePaymentRefunded(payload: PaymentRefundedPayload): Promise<void> {
     this.logger.log(
       `↩️  Handling payment.refunded: ${payload.chargeId} — $${payload.refundedAmount}`,
     );
