@@ -6,7 +6,7 @@ export class User {
   @PrimaryGeneratedColumn('uuid') // تأكد إنها uuid
   id!: string;
 
-  @Column({ type: 'varchar', length: 100 })
+  @Column({ type: 'varchar', length: 100, nullable: true })
   username!: string;
 
   @Column({ type: 'varchar', length: 255, unique: true })

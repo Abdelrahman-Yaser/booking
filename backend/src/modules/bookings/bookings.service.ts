@@ -19,9 +19,12 @@ import { RoomsService } from '../rooms/rooms.service';
 import { NotificationsService } from '../notifications/notifications.service';
 
 // إستيراد الـ DTOs الخاصة بك
-import { CreateBookingDto,UpdateBookingStatusDto } from './dto/booking/create-booking.dto'; 
+import {
+  CreateBookingDto,
+  UpdateBookingStatusDto,
+} from './dto/booking/create-booking.dto';
 import { UpdateBookingDto } from './dto/booking/update-booking.dto';
-import { BookingQueryDto } from './dto/booking/BookingQueryDto';  
+import { BookingQueryDto } from './dto/booking/BookingQueryDto';
 
 export type BookingStatus =
   | 'PENDING'
@@ -64,7 +67,8 @@ export class BookingsService {
     const room = await this.roomRepository.findOne({
       where: { id: dto.resourceId, tenantId },
     });
-    if (!room || (room as any).isDeleted) throw new NotFoundException('Room not found');
+    if (!room || (room as any).isDeleted)
+      throw new NotFoundException('Room not found');
 
     if (room.status === RoomStatus.MAINTENANCE) {
       throw new BadRequestException('Room is under maintenance');
@@ -78,7 +82,9 @@ export class BookingsService {
     );
 
     if (!isAvailable) {
-      throw new ConflictException('Room is not available for the selected dates');
+      throw new ConflictException(
+        'Room is not available for the selected dates',
+      );
     }
 
     const nights = this.calcNights(checkIn, checkOut);
@@ -87,7 +93,7 @@ export class BookingsService {
     // 👇 التعديل السحري: حفظ البيانات بأسماء حقول الـ Entity والـ DTO المتناسقة تماماً
     const newBooking = this.bookingRepository.create({
       tenantId,
-      resourceId: dto.resourceId, 
+      resourceId: dto.resourceId,
       userId: dto.userId || staffId, // لو العميل مش ممرر بنعتبر السيرفس اتعملت بواسطة الـ staff
       startTime: checkIn,
       endTime: checkOut,
@@ -103,7 +109,7 @@ export class BookingsService {
 
     this.notifications
       .sendBookingConfirmation({
-        customerName: 'Customer Name', 
+        customerName: 'Customer Name',
         customerEmail: 'customer@email.com',
         hotelName: tenant?.name ?? 'Our Hotel',
         bookingId: booking.id,
@@ -121,7 +127,15 @@ export class BookingsService {
 
   // ─── FIND ALL BOOKINGS ───────────────────────────────────────────────────────
   async findAll(tenantId: string, query: BookingQueryDto) {
-    const { status, roomId, customerId, from, to, page = 1, limit = 10 } = query;
+    const {
+      status,
+      roomId,
+      customerId,
+      from,
+      to,
+      page = 1,
+      limit = 10,
+    } = query;
     const skip = (page - 1) * limit;
 
     const where: FindOptionsWhere<Booking> = {
@@ -173,7 +187,9 @@ export class BookingsService {
     if (!room) throw new NotFoundException('Room not found');
 
     if (booking.status === 'CANCELLED' || booking.status === 'CHECKED_OUT') {
-      throw new BadRequestException('Cannot update a cancelled or completed booking');
+      throw new BadRequestException(
+        'Cannot update a cancelled or completed booking',
+      );
     }
 
     // Update DTO uses startTime/endTime (consistent with create), fall back to existing booking times
@@ -204,7 +220,11 @@ export class BookingsService {
   }
 
   // ─── UPDATE STATUS ───────────────────────────────────────────────────────────
-  async updateStatus(tenantId: string, id: string, dto: UpdateBookingStatusDto) {
+  async updateStatus(
+    tenantId: string,
+    id: string,
+    dto: UpdateBookingStatusDto,
+  ) {
     const booking = await this.findOne(tenantId, id);
     const room = await this.roomRepository.findOne({
       where: { id: booking.resourceId },
@@ -241,7 +261,7 @@ export class BookingsService {
       where: { id: tenantId },
       select: ['name'],
     });
-    
+
     const emailData = {
       customerName: 'Customer Name',
       customerEmail: 'customer@email.com',
@@ -252,7 +272,7 @@ export class BookingsService {
       checkIn: updated.startTime,
       checkOut: updated.endTime,
       nights: this.calcNights(updated.startTime, updated.endTime),
-      totalPrice: 0, 
+      totalPrice: 0,
     };
 
     if (dto.status === 'CHECKED_IN')
@@ -260,7 +280,9 @@ export class BookingsService {
     if (dto.status === 'CHECKED_OUT')
       this.notifications.sendCheckOutNotification(emailData).catch(() => {});
     if (dto.status === 'CANCELLED')
-      this.notifications.sendCancellationNotification(emailData).catch(() => {});
+      this.notifications
+        .sendCancellationNotification(emailData)
+        .catch(() => {});
 
     return updated;
   }
@@ -272,7 +294,7 @@ export class BookingsService {
   async remove(tenantId: string, id: string) {
     const booking = await this.findOne(tenantId, id);
 
-    booking.isDeleted = true; 
+    booking.isDeleted = true;
     await this.bookingRepository.save(booking);
 
     return { message: 'Booking deleted successfully' };
@@ -285,12 +307,22 @@ export class BookingsService {
     const tomorrow = new Date(today);
     tomorrow.setDate(tomorrow.getDate() + 1);
 
-    const total = await this.bookingRepository.count({ where: { tenantId, isDeleted: false } });
-    const confirmed = await this.bookingRepository.count({ where: { tenantId, status: 'CONFIRMED', isDeleted: false } });
-    const checkedIn = await this.bookingRepository.count({ where: { tenantId, status: 'CHECKED_IN', isDeleted: false } });
+    const total = await this.bookingRepository.count({
+      where: { tenantId, isDeleted: false },
+    });
+    const confirmed = await this.bookingRepository.count({
+      where: { tenantId, status: 'CONFIRMED', isDeleted: false },
+    });
+    const checkedIn = await this.bookingRepository.count({
+      where: { tenantId, status: 'CHECKED_IN', isDeleted: false },
+    });
 
     const todayCheckIns = await this.bookingRepository.count({
-      where: { tenantId, startTime: Between(today, tomorrow), isDeleted: false },
+      where: {
+        tenantId,
+        startTime: Between(today, tomorrow),
+        isDeleted: false,
+      },
     });
 
     const todayCheckOuts = await this.bookingRepository.count({

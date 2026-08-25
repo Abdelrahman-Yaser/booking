@@ -29,6 +29,9 @@ export class Booking {
   @Column({ type: 'timestamp' })
   endTime!: Date;
 
+  @Column({ type: 'decimal', precision: 10, scale: 2 })
+  totalPrice!: number;
+
   @Column({ type: 'boolean', default: false })
   isDeleted!: boolean;
 

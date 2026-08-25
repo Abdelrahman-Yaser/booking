@@ -7,7 +7,7 @@ import {
   HttpStatus,
   Logger,
 } from '@nestjs/common';
-import { Request } from 'express';
+import type { Request } from 'express';
 import { ApiTags, ApiExcludeEndpoint } from '@nestjs/swagger';
 import { StripeWebhookService } from './stripe.webhook.service';
 
@@ -29,7 +29,7 @@ export class StripeWebhookController {
     @Headers('stripe-signature') sig: string,
   ): Promise<{ received: boolean }> {
     // ✅ rawBody is attached by express.raw() middleware in main.ts
-    const rawBody = (req as any).rawBody as Buffer;
+    const rawBody = (req as unknown as { rawBody: Buffer }).rawBody;
 
     if (!rawBody) {
       this.logger.error('rawBody is missing — check main.ts middleware setup');

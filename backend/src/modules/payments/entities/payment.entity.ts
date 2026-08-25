@@ -5,8 +5,11 @@ import {
   CreateDateColumn,
   UpdateDateColumn,
   Index,
+  ManyToOne,
+  JoinColumn,
 } from 'typeorm';
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
+import { Booking } from '../../bookings/entities/booking.entity';
 
 // 1. تعريف الـ Enums (مستقلة عن Prisma)
 export enum PaymentMethod {
@@ -14,6 +17,8 @@ export enum PaymentMethod {
   CASH = 'CASH',
   FAWRY = 'FAWRY',
   STRIPE = 'STRIPE',
+  PAYPAL = 'PAYPAL',
+  BANK_TRANSFER = 'BANK_TRANSFER',
 }
 
 export enum PaymentStatus {
@@ -33,6 +38,10 @@ export class PaymentEntity {
   @Column({ type: 'uuid' })
   @Index() // 💡 إضافة Index لتسريع عمليات الـ Query بناءً على الـ bookingId
   bookingId!: string;
+
+  @ManyToOne(() => Booking, { onDelete: 'CASCADE' })
+  @JoinColumn({ name: 'bookingId' })
+  booking?: Booking;
 
   @ApiProperty({ description: 'المبلغ الإجمالي' })
   @Column({ type: 'decimal', precision: 10, scale: 2 })

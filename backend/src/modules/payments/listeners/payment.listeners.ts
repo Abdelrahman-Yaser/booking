@@ -51,13 +51,12 @@ export class PaymentListeners {
       // Load payment with booking & relations in TypeORM syntax
       const payment = await this.paymentRepository.findOne({
         where: { stripePaymentId: payload.stripePaymentId },
-        relations: {
-          booking: {
-            customer: true,
-            room: true,
-            tenant: true,
-          },
-        },
+        relations: [
+          'booking',
+          'booking.customer',
+          'booking.room',
+          'booking.tenant',
+        ],
       });
 
       if (!payment) return;
@@ -103,7 +102,7 @@ export class PaymentListeners {
   }
   // ─── PAYMENT REFUNDED ────────────────────────────────────────────────────────
   @OnEvent('payment.refunded', { async: true })
-  async handlePaymentRefunded(payload: PaymentRefundedPayload): Promise<void> {
+  handlePaymentRefunded(payload: PaymentRefundedPayload): void {
     this.logger.log(
       `↩️  Handling payment.refunded: ${payload.chargeId} — $${payload.refundedAmount}`,
     );

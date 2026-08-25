@@ -11,12 +11,13 @@ import slugify from 'slugify';
 import { User } from '../../auth/entities/auth.entity';
 import { Booking } from '../../bookings/entities/booking.entity';
 import { Room } from '../../rooms/entities/room.entity';
+import { IsOptional } from 'class-validator';
 
 @Entity('tenants')
 export class Tenant {
   @PrimaryGeneratedColumn('uuid') // <--- تعديل لـ uuid
   id!: string; // <--- تعديل لـ string
-
+  @IsOptional()
   @Column({ type: 'varchar', length: 255 })
   name!: string;
 
@@ -36,6 +37,7 @@ export class Tenant {
   })
   updatedAt!: Date;
 
+  @IsOptional()
   @OneToMany(() => User, (user) => user.tenant)
   users!: User[];
 

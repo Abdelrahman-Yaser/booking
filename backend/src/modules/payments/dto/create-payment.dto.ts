@@ -1,6 +1,5 @@
 import { IsString, IsNotEmpty, IsEnum, IsOptional } from 'class-validator';
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
-import { PaymentMethod } from '@prisma/client';
 
 export class CreatePaymentDto {
   @ApiProperty({ description: 'The booking ID to pay for' })
@@ -8,9 +7,11 @@ export class CreatePaymentDto {
   @IsNotEmpty()
   bookingId!: string;
 
-  @ApiProperty({ enum: PaymentMethod, description: 'Payment method' })
-  @IsEnum(PaymentMethod)
-  method!: PaymentMethod;
+  @ApiProperty({ description: 'Payment method' })
+  @IsEnum(['stripe', 'paypal', 'bank_transfer'], {
+    message: 'method must be one of: stripe, paypal, bank_transfer',
+  })
+  method!: string;
 
   @ApiPropertyOptional({ description: 'Optional notes about the payment' })
   @IsString()
